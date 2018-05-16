@@ -2,12 +2,9 @@
 from datetime import time
 import random
 import math
+import copy
 
-from onibus import Onibus
-from escola import Escola
-from parada import Parada
-from garagem import Garagem
-from estudante import Estudante
+from models import Onibus, Escola, Parada, Garagem, Estudante
 
 
 def distancia(localA, localB):# calcula distancia entre coordenadas geograficas
@@ -15,8 +12,11 @@ def distancia(localA, localB):# calcula distancia entre coordenadas geograficas
     dlo =  (float)(((localA.longitude - localB.longitude)/60)*1852 )#diferença entre as longitudes em metros
     return math.sqrt(dla**2 + dlo**2) #distancia em metros 
 
-def printConj(conj):
-    print("Conjunto de ", type(conj[0]))
+def distanciaTestes(localA, localB):# calcula distancia entre coordenadas geograficas
+    return localA.matrizDistancia[localB] #distancia em metros 
+
+def printConj(conj, nome):
+    print("Conjunto de ", nome)
     for i in conj:
         print(i)
 
@@ -32,24 +32,25 @@ def criarLRC(fatorRandomizacao, matrizCustos ): # nessa função é onde realmen
         return lrc
     except :
         return None
-        
-
+   
 def listaRestritaDeCandidatosInicial(fatorRandomizacao, localSaidaOnibus, conjParadas): #LRCi
     # fatorRandomizacao = pode assumir valor entre 0 e 1 seve pra determinar o tamanho da lista LRC, onde se a =0 o metodo resá totalmente guloso e a= 1 totalmente aleatório
     matrizCustos={} # a estrutura de dados da matriz de custos é um diciionário onde a parada é a chave
     for parada in conjParadas:
-        custo= distancia(localSaidaOnibus, parada) + distancia(parada, parada.escola)
-        matrizCustos[ parada ]= custo
+        custo= distanciaTestes(localSaidaOnibus, parada) + distanciaTestes(parada, parada.escola)
+        matrizCustos[ parada ] = custo
     return criarLRC(fatorRandomizacao, matrizCustos)
+# Modificar apos o teste de  distanciaTestes para distancia  
 
 def listaRestritaDeCandidatosPorEscola(fatorRandomizacao, paradaAnterior, conjParadas): #LRCj
     # fatorRandomizacao = pode assumir valor entre 0 e 1 seve pra determinar o tamanho da lista LRC, onde se a =0 o metodo resá totalmente guloso e a= 1 totalmente aleatório
     matrizCustos={} # a estrutura de dados da matriz de custos é um diciionário onde a parada é a chave
     for parada in conjParadas:
         if parada.escola == paradaAnterior.escola:
-            custo= distancia(paradaAnterior, parada) + distancia(parada, parada.escola)
+            custo= distanciaTestes(paradaAnterior, parada) + distanciaTestes(parada, parada.escola)
             matrizCustos[ parada ]= custo
     return criarLRC(fatorRandomizacao, matrizCustos)
+# Modificar apos o teste de  distanciaTestes para distancia
 
 def tempoTrecho(distancia): # em minutos
     tempo = (float)(distancia/8.8888888889) # t=s/v , sendo s em metros e v em m/s e t em segundos
@@ -59,32 +60,201 @@ def tempoEmbarque(qtAlunos): # em minutos
     tempo =(float)( 1.9 + 2.6 *qtAlunos) #em segundos
     return (float)(tempo/60)
 
-    
 def tempoDesembarque(qtAlunos): # em minutos
     tempo =(float)( 2.6 + 1.9 *qtAlunos) #em segundos
     return (float)(tempo/60)
 
+def tempoDaRota(rota):
+    tempo = 0.0
+    paradaAnterior
+    for parada in rota:
+        if paradaAnterior:
+            tempo += tempoTrecho(distanciaTestes(paradaAnterior,parada))
+            tempo += tempoEmbarque(parada.qtAlunos)
+            tempo += tempoDesembarque(parada.qtAlunos)
+        paradaAnterior = parada
+    return tempo
+        
+def melhoriaDeRota(rota): # algoritmo 2-opt
+    # a primeira parada da rota é a garagem e portanto não deve poder trocar a ordem de visita da garagem com uma parada
+    # assim como a ultima parada é a escola visitada
+    for i in  range(1, len(rota)-2):
+        for j in range(2, len(rota)-1):
+            aux = rota.copy
+            aux[i] = rota[j].copy
+            aux[j] = rota[1].copy
+            if tempoDaRota(aux) < tempoDaRota(rota) : # se trocando a ordem de visita entre duas paradas o caminho ficar menor eu troco a ordem das paradas
+                rota = aux.copy
+    return rota
+
+def inicializaMatrizesDistanciaTeste(conjEscolas, conjParadas, conjGaragens, conjOnibus):
+    # Inicializar matrizes de distancias para o teste
+    # Garagem 
+    matrizDistancia = {}
+    for escola in conjEscolas:
+        matrizDistancia[escola] = 0.9
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistancia[parada] = 1.1
+        elif parada.identificador == 2:
+            matrizDistancia[parada] = 1.2
+        elif parada.identificador == 3:
+            matrizDistancia[parada] = 2.6
+        elif parada.identificador == 4:
+            matrizDistancia[parada] = 2.2
+        else:
+            matrizDistancia[parada] = 3.2
+    for garagem in conjGaragens:
+        matrizDistancia[garagem] = 0.0
+        garagem.matrizDistancia = matrizDistancia
+
+    # Escola 
+    matrizDistancia = {}
+    for garagem in conjGaragens:
+        matrizDistancia[garagem] = 0.9
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistancia[parada] = 0.8
+        elif parada.identificador == 2:
+            matrizDistancia[parada] = 0.9
+        elif parada.identificador == 3:
+            matrizDistancia[parada] = 0.8
+        elif parada.identificador == 4:
+            matrizDistancia[parada] = 0.6
+        else:
+            matrizDistancia[parada] = 1.7
+    for escola in conjEscolas:
+        matrizDistancia[escola] = 0.0
+        escola.matrizDistancia = matrizDistancia
+
+    # Parada1 
+    matrizDistanciaP1 = {}
+    for garagem in conjGaragens:
+        matrizDistanciaP1[garagem] = 1.1
+    for escola in conjEscolas:
+        matrizDistanciaP1[escola] = 0.8
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistanciaP1[parada] = 0.0
+        elif parada.identificador == 2:
+            matrizDistanciaP1[parada] = 2.1
+        elif parada.identificador == 3:
+            matrizDistanciaP1[parada] = 2.5
+        elif parada.identificador == 4:
+            matrizDistanciaP1[parada] = 1.5
+        else:
+            matrizDistanciaP1[parada] = 1.9
+
+    # Parada2
+    matrizDistanciaP2 = {}
+    for garagem in conjGaragens:
+        matrizDistanciaP2[garagem] = 1.2
+    for escola in conjEscolas:
+        matrizDistanciaP2[escola] = 0.9
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistanciaP2[parada] = 2.1
+        elif parada.identificador == 2:
+            matrizDistanciaP2[parada] = 0.0
+        elif parada.identificador == 3:
+            matrizDistanciaP2[parada] = 1.8
+        elif parada.identificador == 4:
+            matrizDistanciaP2[parada] = 1.9
+        else:
+            matrizDistanciaP2[parada] = 2.9
+
+    # Parada3
+    matrizDistanciaP3 = {}
+    for garagem in conjGaragens:
+        matrizDistanciaP3[garagem] = 2.6
+    for escola in conjEscolas:
+        matrizDistanciaP3[escola] = 0.8
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistanciaP3[parada] = 2.5
+        elif parada.identificador == 2:
+            matrizDistanciaP3[parada] = 1.8
+        elif parada.identificador == 3:
+            matrizDistanciaP3[parada] = 0.0
+        elif parada.identificador == 4:
+            matrizDistanciaP3[parada] = 0.6
+        else:
+            matrizDistanciaP3[parada] = 2.2
+
+    # Parada4
+    matrizDistanciaP4 = {}
+    for garagem in conjGaragens:
+        matrizDistanciaP4[garagem] = 2.2
+    for escola in conjEscolas:
+        matrizDistanciaP4[escola] = 0.6
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistanciaP4[parada] = 1.5
+        elif parada.identificador == 2:
+            matrizDistanciaP4[parada] = 1.9
+        elif parada.identificador == 3:
+            matrizDistanciaP4[parada] = 0.6
+        elif parada.identificador == 4:
+            matrizDistanciaP4[parada] = 0.0
+        else:
+            matrizDistanciaP4[parada] = 0.8
+
+    # Parada5
+    matrizDistanciaP5 = {}
+    for garagem in conjGaragens:
+        matrizDistanciaP5[garagem] = 3.2
+    for escola in conjEscolas:
+        matrizDistanciaP5[escola] = 1.7
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            matrizDistanciaP5[parada] = 1.9
+        elif parada.identificador == 2:
+            matrizDistanciaP5[parada] = 2.9
+        elif parada.identificador == 3:
+            matrizDistanciaP5[parada] = 2.2
+        elif parada.identificador == 4:
+            matrizDistanciaP5[parada] = 0.8
+        else:
+            matrizDistanciaP5[parada] = 0.0
+
+    # Inicializa as matrizes de distancia das paradas
+    for parada in conjParadas:
+        if parada.identificador == 1:
+            parada.matrizDistancia = matrizDistanciaP1
+        elif parada.identificador == 2:
+            parada.matrizDistancia = matrizDistanciaP2
+        elif parada.identificador == 3:
+            parada.matrizDistancia = matrizDistanciaP3
+        elif parada.identificador == 4:
+            parada.matrizDistancia = matrizDistanciaP4
+        else:
+            parada.matrizDistancia = matrizDistanciaP5
+
 if __name__ == '__main__' :
     # Inicializa os conjuntos
-    conjEscolas=[Escola(), Escola()]
-    conjParadas=[Parada(random.choice(conjEscolas)), Parada(random.choice(conjEscolas)), Parada(random.choice(conjEscolas)), Parada(random.choice(conjEscolas)), Parada(random.choice(conjEscolas)), Parada(random.choice(conjEscolas)), Parada(random.choice(conjEscolas)) ]
-    conjGaragens=[Garagem(), Garagem() ] 
-    conjOnibus= [Onibus(random.choice(conjGaragens)), Onibus(random.choice(conjGaragens)), Onibus(random.choice(conjGaragens)), Onibus(random.choice(conjGaragens)), Onibus(random.choice(conjGaragens))]
+    conjEscolas=[Escola()]
+    conjParadas=[Parada(random.choice(conjEscolas), 1), Parada(random.choice(conjEscolas), 2), Parada(random.choice(conjEscolas), 3), Parada(random.choice(conjEscolas), 4), Parada(random.choice(conjEscolas), 5)]
+    conjGaragens=[Garagem()] 
+    conjOnibus= [Onibus(random.choice(conjGaragens))]
     #conjEstudantes=[]
     rota=[] #conjunto de rotas que inicia vazio 
 
-    printConj(conjEscolas)
-    printConj(conjParadas)
-    printConj(conjGaragens)
-    printConj(conjOnibus)
+    inicializaMatrizesDistanciaTeste(conjEscolas, conjParadas, conjGaragens, conjOnibus)
+       
+
+    # printConj(conjEscolas , 'escolas')
+    # printConj(conjParadas, 'paradas')
+    # printConj(conjGaragens, 'garagens')
+    # printConj(conjOnibus, 'onibus')
     
 
     while conjParadas :
         subRota = []
         parada = None
             
-        if not rota or (onibus.horarioAtendimento > 0):
-            onibus= random.choice(conjOnibus) # pega um onibus aleatório no conj de onibus
+        if not rota or (onibus.horarioAtendimento > 0): ###BUG NESSA SEGUNDA CONDIÇÃO###
+            onibus = random.choice(conjOnibus) # pega um onibus aleatório no conj de onibus
+            subRota.append(onibus.localAtual)
         else:
             # gerar nova rota pro mesmo busao
             subRota = onibus.localAtual
@@ -99,9 +269,9 @@ if __name__ == '__main__' :
         conjParadas.remove(parada)
 
         # Organiza os horários do onibus
-        onibus.horarioAtendimento -= distancia(onibus.localAtual, parada)
+        onibus.horarioAtendimento -= distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
         onibus.horarioAtendimento -= tempoEmbarque(parada.qtAlunos)
-        onibus.tempoRota += distancia(onibus.localAtual, parada)
+        onibus.tempoRota += distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
         onibus.tempoRota += tempoEmbarque(parada.qtAlunos)
 
         # Se o onibus ainda tiver capacidade
@@ -117,36 +287,37 @@ if __name__ == '__main__' :
                     conjParadas.remove(parada)
 
                     # Organiza os horários do onibus
-                    onibus.horarioAtendimento -= distancia(onibus.localAtual, parada)
+                    onibus.horarioAtendimento -= distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
                     onibus.horarioAtendimento -= tempoEmbarque(parada.qtAlunos)
-                    onibus.tempoRota += distancia(onibus.localAtual, parada)
+                    onibus.tempoRota += distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
                     onibus.tempoRota += tempoEmbarque(parada.qtAlunos)
                 else:
                     onibus.horarioAtendimento -= tempoDesembarque(onibus.lotacao)
                     subRota.append(onibus.escola) # adiciona a escola como ultima parada da subRota
-                    onibus.tempoRota += distancia(onibus.localAtual, onibus.escola)
+                    onibus.tempoRota += distanciaTestes(onibus.localAtual, onibus.escola) # Modificar apos o teste de  distanciaTestes para distancia
                     onibus.tempoRota += tempoDesembarque(parada.qtAlunos)
                     onibus.localAtual = onibus.escola # atualiza local de onibus
                     break
-                    
-                    
-
             else:
                 onibus.horarioAtendimento -= tempoDesembarque(onibus.lotacao)
                 subRota.append(onibus.escola) # adiciona a escola como ultima parada da subRota
-                onibus.tempoRota += distancia(onibus.localAtual, onibus.escola)
+                onibus.tempoRota += distanciaTestes(onibus.localAtual, onibus.escola) # Modificar apos o teste de  distanciaTestes para distancia
                 onibus.tempoRota += tempoDesembarque(parada.qtAlunos)
                 onibus.localAtual = onibus.escola # atualiza local de onibus
                 break
         
+        
+        melhoriaDeRota(subRota)
         rota.append(subRota)
 
 
-    printConj(conjEscolas)
-    printConj(conjGaragens)
-    printConj(conjOnibus)
+    # printConj(conjEscolas, 'escolas')
+    # printConj(conjGaragens, 'garagens')
+    # printConj(conjOnibus, 'onibus')
+    for subrota in rota:
+        printConj(subrota, 'rota')
+    
 
-    print(rota)
     
             
 
