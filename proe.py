@@ -66,25 +66,28 @@ def tempoDesembarque(qtAlunos): # em minutos
 
 def tempoDaRota(rota):
     tempo = 0.0
-    paradaAnterior
+    paradaAnterior = None
     for parada in rota:
-        if paradaAnterior:
-            tempo += tempoTrecho(distanciaTestes(paradaAnterior,parada))
-            tempo += tempoEmbarque(parada.qtAlunos)
-            tempo += tempoDesembarque(parada.qtAlunos)
-        paradaAnterior = parada
+        if type(parada) == Parada:
+            if paradaAnterior:
+                tempo += tempoTrecho(distanciaTestes(paradaAnterior,parada))
+                tempo += tempoEmbarque(parada.qtAlunos)
+                tempo += tempoDesembarque(parada.qtAlunos)
+            paradaAnterior = parada
     return tempo
         
 def melhoriaDeRota(rota): # algoritmo 2-opt
     # a primeira parada da rota é a garagem e portanto não deve poder trocar a ordem de visita da garagem com uma parada
     # assim como a ultima parada é a escola visitada
     for i in  range(1, len(rota)-2):
-        for j in range(2, len(rota)-1):
-            aux = rota.copy
-            aux[i] = rota[j].copy
-            aux[j] = rota[1].copy
-            if tempoDaRota(aux) < tempoDaRota(rota) : # se trocando a ordem de visita entre duas paradas o caminho ficar menor eu troco a ordem das paradas
-                rota = aux.copy
+        aux = copy.copy(rota)
+        temp = aux[i]
+        aux[i] = aux[i+1]
+        aux[i+1] = temp
+        print ("tempo aux : " ,tempoDaRota(aux), "tempo rota: ", tempoDaRota(rota))
+        if tempoDaRota(rota) > tempoDaRota(aux): # se trocando a ordem de visita entre duas paradas o caminho ficar menor eu troco a ordem das paradas
+            print("TROCOU  ", aux[i], aux[i+1])
+            rota = copy.copy(aux)
     return rota
 
 def inicializaMatrizesDistanciaTeste(conjEscolas, conjParadas, conjGaragens, conjOnibus):
@@ -247,17 +250,19 @@ if __name__ == '__main__' :
     # printConj(conjGaragens, 'garagens')
     # printConj(conjOnibus, 'onibus')
     
-
+    i=1
     while conjParadas :
+
+        print ("************", i, "********")
         subRota = []
         parada = None
             
-        if not rota or (onibus.horarioAtendimento > 0): ###BUG NESSA SEGUNDA CONDIÇÃO###
+        if not rota or (onibus.horarioAtendimento > 0): 
             onibus = random.choice(conjOnibus) # pega um onibus aleatório no conj de onibus
             subRota.append(onibus.localAtual)
         else:
             # gerar nova rota pro mesmo busao
-            subRota = onibus.localAtual
+            subRota.append(onibus.localAtual)
     
 
         lrc = listaRestritaDeCandidatosInicial(0.1, onibus.localAtual, conjParadas)
@@ -271,7 +276,7 @@ if __name__ == '__main__' :
         # Organiza os horários do onibus
         onibus.horarioAtendimento -= distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
         onibus.horarioAtendimento -= tempoEmbarque(parada.qtAlunos)
-        onibus.tempoRota += distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
+        onibus.tempoRota += tempoTrecho(distanciaTestes(onibus.localAtual, parada)) # Modificar apos o teste de  distanciaTestes para distancia
         onibus.tempoRota += tempoEmbarque(parada.qtAlunos)
 
         # Se o onibus ainda tiver capacidade
@@ -280,7 +285,8 @@ if __name__ == '__main__' :
             if lrc != None:
                 parada = random.choice(lrc)
                 #Verifica se o horario de chegada do onibus e a capacidade vão permitir atender mais essa parada
-                if (onibus.tempoRota+tempoDesembarque(onibus.lotacao)) > onibus.escola.horarioInicioAulasMax  and (onibus.capacidade > (onibus.lotacao + parada.qtAlunos)) :
+                if (onibus.tempoRota+tempoDesembarque(onibus.lotacao)) <= onibus.escola.horarioInicioAulasMax  and (onibus.capacidade >= (onibus.lotacao + parada.qtAlunos)): #BUG não passa por essa condição
+                    print ("condição A: add parada na subrota")
                     subRota.append(parada)
                     onibus.lotacao += parada.qtAlunos # atualiza a lotação do onibus
                     onibus.localAtual = parada # atualiza local de onibus
@@ -289,33 +295,38 @@ if __name__ == '__main__' :
                     # Organiza os horários do onibus
                     onibus.horarioAtendimento -= distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
                     onibus.horarioAtendimento -= tempoEmbarque(parada.qtAlunos)
-                    onibus.tempoRota += distanciaTestes(onibus.localAtual, parada) # Modificar apos o teste de  distanciaTestes para distancia
+                    onibus.tempoRota += tempoTrecho(distanciaTestes(onibus.localAtual, parada)) # Modificar apos o teste de  distanciaTestes para distancia
                     onibus.tempoRota += tempoEmbarque(parada.qtAlunos)
                 else:
+                    print ("condição b: add escola na subrota")
                     onibus.horarioAtendimento -= tempoDesembarque(onibus.lotacao)
                     subRota.append(onibus.escola) # adiciona a escola como ultima parada da subRota
-                    onibus.tempoRota += distanciaTestes(onibus.localAtual, onibus.escola) # Modificar apos o teste de  distanciaTestes para distancia
+                    onibus.tempoRota += tempoTrecho(distanciaTestes(onibus.localAtual, onibus.escola)) # Modificar apos o teste de  distanciaTestes para distancia
                     onibus.tempoRota += tempoDesembarque(parada.qtAlunos)
                     onibus.localAtual = onibus.escola # atualiza local de onibus
                     break
             else:
+                print ("condição c: add escola na subrota")
                 onibus.horarioAtendimento -= tempoDesembarque(onibus.lotacao)
                 subRota.append(onibus.escola) # adiciona a escola como ultima parada da subRota
-                onibus.tempoRota += distanciaTestes(onibus.localAtual, onibus.escola) # Modificar apos o teste de  distanciaTestes para distancia
+                onibus.tempoRota += tempoTrecho(distanciaTestes(onibus.localAtual, onibus.escola)) # Modificar apos o teste de  distanciaTestes para distancia
                 onibus.tempoRota += tempoDesembarque(parada.qtAlunos)
                 onibus.localAtual = onibus.escola # atualiza local de onibus
                 break
         
-        
-        melhoriaDeRota(subRota)
-        rota.append(subRota)
+    printConj(subRota, "ANTES DO 2-OPT")    
+    subRota = melhoriaDeRota(subRota)
+    printConj(subRota, "DEPOIS DO 2-OPT") 
+    rota.append(subRota)
 
 
     # printConj(conjEscolas, 'escolas')
     # printConj(conjGaragens, 'garagens')
     # printConj(conjOnibus, 'onibus')
-    for subrota in rota:
-        printConj(subrota, 'rota')
+    # for subrota in rota:
+    #     printConj(subrota, 'rota')
+
+    print(rota)
     
 
     

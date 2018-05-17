@@ -9,7 +9,7 @@ class Escola:
         # self.latitude= random.randint(1,10)
         # self.longitude= random.randint(1,10)
         self.horarioInicioAulasMin = 1
-        self.horarioInicioAulasMax = 60 #ta como se fosse minutos
+        self.horarioInicioAulasMax = 800.0 #ta como se fosse minutos
         self.matrizDistancia = {}
 
     def __str__(self):
@@ -45,8 +45,8 @@ class Onibus:
     def __init__(self, garagem):
         self.identificação= random.randint(1000,3000)
         self.garagem= garagem
-        self.horarioAtendimento= 120.0
-        self.capacidade= 5
+        self.horarioAtendimento= 333.0
+        self.capacidade= 10
         self.lotacao=0
         self.escola= object
         self.localAtual= garagem
