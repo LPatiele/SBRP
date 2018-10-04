@@ -12,15 +12,17 @@ def distancia(localA, localB):# calcula distancia entre coordenadas geograficas
     dlo =  (float)(((localA.longitude - localB.longitude)/60)*1852 )#diferença entre as longitudes em metros
     return math.sqrt(dla**2 + dlo**2) #distancia em metros 
 
-def distanciaTestes(localA, localB):# calcula distancia entre coordenadas geograficas
+def distanciaTestes(localA, localB):# calcula distancia pela matriz de distancia
     return localA.matrizDistancia[localB] #distancia em metros 
 
-def printConj(conj, nome):
+def printConj(conj, nome): # imprime na tela os conjuntos definidos ex: escolas, garagens, paradas,etc.
     print("Conjunto de ", nome)
     for i in conj:
         print(i)
 
-def criarLRC(fatorRandomizacao, matrizCustos ): # nessa função é onde realmente é criada a lista restrita de paradas candidatas a entrar na rota
+def criarLRC(fatorRandomizacao, matrizCustos ): 
+    # nessa função é onde realmente é criada a lista restrita de paradas 
+    # candidatas a entrar na rota
     try:
         menorCusto= sorted(matrizCustos.values())[0]
         maiorCusto= sorted(matrizCustos.values())[len(matrizCustos)-1]
@@ -33,7 +35,8 @@ def criarLRC(fatorRandomizacao, matrizCustos ): # nessa função é onde realmen
     except :
         return None
    
-def listaRestritaDeCandidatosInicial(fatorRandomizacao, localSaidaOnibus, conjParadas): #LRCi
+def listaRestritaDeCandidatosInicial(fatorRandomizacao, localSaidaOnibus, conjParadas):
+    #LRCi
     # fatorRandomizacao = pode assumir valor entre 0 e 1 seve pra determinar o tamanho da lista LRC, onde se a =0 o metodo resá totalmente guloso e a= 1 totalmente aleatório
     matrizCustos={} # a estrutura de dados da matriz de custos é um diciionário onde a parada é a chave
     for parada in conjParadas:
@@ -42,7 +45,8 @@ def listaRestritaDeCandidatosInicial(fatorRandomizacao, localSaidaOnibus, conjPa
     return criarLRC(fatorRandomizacao, matrizCustos)
 # Modificar apos o teste de  distanciaTestes para distancia  
 
-def listaRestritaDeCandidatosPorEscola(fatorRandomizacao, paradaAnterior, conjParadas): #LRCj
+def listaRestritaDeCandidatosPorEscola(fatorRandomizacao, paradaAnterior, conjParadas): 
+    #LRCj
     # fatorRandomizacao = pode assumir valor entre 0 e 1 seve pra determinar o tamanho da lista LRC, onde se a =0 o metodo resá totalmente guloso e a= 1 totalmente aleatório
     matrizCustos={} # a estrutura de dados da matriz de custos é um diciionário onde a parada é a chave
     for parada in conjParadas:
@@ -64,7 +68,8 @@ def tempoDesembarque(qtAlunos): # em minutos
     tempo =(float)( 2.6 + 1.9 *qtAlunos) #em segundos
     return (float)(tempo/60)
 
-def tempoDaRota(rota):
+def tempoDaRota(rota): 
+    # somatória de tempo dos trechos, de embarques e desemarques de uma dada rota 
     tempo = 0.0
     paradaAnterior = None
     for parada in rota:
@@ -233,10 +238,13 @@ def inicializaMatrizesDistanciaTeste(conjEscolas, conjParadas, conjGaragens, con
         else:
             parada.matrizDistancia = matrizDistanciaP5
 
+
+
+# A main que é o algoritmo de GRASP implementado para
 if __name__ == '__main__' :
-    # Inicializa os conjuntos
+    # Inicializa os conjuntos de teste
     conjEscolas=[Escola()]
-    conjParadas=[Parada(random.choice(conjEscolas), 1), Parada(random.choice(conjEscolas), 2), Parada(random.choice(conjEscolas), 3), Parada(random.choice(conjEscolas), 4), Parada(random.choice(conjEscolas), 5)]
+    conjParadas=[Paradatest(random.choice(conjEscolas), 1), Paradatest(random.choice(conjEscolas), 2), Paradatest(random.choice(conjEscolas), 3), Paradatest(random.choice(conjEscolas), 4), Paradatest(random.choice(conjEscolas), 5)]
     conjGaragens=[Garagem()] 
     conjOnibus= [Onibus(random.choice(conjGaragens))]
     #conjEstudantes=[]
@@ -314,10 +322,10 @@ if __name__ == '__main__' :
                 onibus.localAtual = onibus.escola # atualiza local de onibus
                 break
         
-    printConj(subRota, "ANTES DO 2-OPT")    
-    subRota = melhoriaDeRota(subRota)
-    printConj(subRota, "DEPOIS DO 2-OPT") 
-    rota.append(subRota)
+        printConj(subRota, "ANTES DO 2-OPT")    
+        subRota = melhoriaDeRota(subRota)
+        printConj(subRota, "DEPOIS DO 2-OPT") 
+        rota.append(subRota)
 
 
     # printConj(conjEscolas, 'escolas')

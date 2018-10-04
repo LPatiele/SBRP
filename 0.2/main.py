@@ -1,0 +1,106 @@
+# -*- coding: utf-8 -*-
+from pty import fork
+
+from grasp import Grasp
+from models import Parada, Escola, Garagem, Onibus
+
+
+def prepararGaragemTeste(conjParadas):
+    count=0
+    x=0 #latitude
+    y=0 #longitude
+    for parada in conjParadas:
+        x+= parada.latitude
+        y+= parada.longitude
+        count+=1
+    x= x/count
+    y= y/count
+    return Garagem(x,y,100)
+
+def verificarParadas(conjParadas):
+    # verifica se paradas com id diferentes se são a mesma parada
+    # utilizei para confirmar se nas instancia existiam paradas 
+    # onde os estudantes tinham escolas diferentes de destino
+    # nas instancias de park não tinham
+    for p1 in conjParadas:
+        for p2 in conjParadas[1:-1]:
+            if p1.latitude == p2.latitude and p1.longitude == p2.longitude and p1.id != p2.id:
+                print ("P1: {} e P2: {}".format(p1,p2))
+
+
+
+if __name__ == '__main__':
+    problema = Grasp()
+    paradas = []
+    escolas = []
+    garagens = [] 
+    frotas = []  
+    # Ler os arquivos
+
+    x=0
+    y=0
+
+    # Lendo arquivos e cria os conjuntos para teste com instanias de Park
+    for i in range(1,9):
+        # Prepara os oito conjuntos de paradas
+        arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Schools.txt', 'r')
+        texto = arqEscolas.readlines()[1:] # Lê o arquivo pulando a primeira linha q é legendas
+        conjEscolas = []
+        for linha in texto :
+            a1,a2,a3,a4,a5 = linha.split()
+            conjEscolas.append(Escola(a1,a2,a3,a4,a5))
+        escolas.append(conjEscolas)
+        arqEscolas.close()
+
+        # Prepara os oito conjuntos de paradas
+        arqParadas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Stops.txt', 'r')
+        texto = arqParadas.readlines()[1:] # Lê o arquivo pulando a primeira linha q é legendas
+        conjParadas = []
+        for linha in texto :
+            a1,a2,a3,a4,a5 = linha.split()
+            for escola in conjEscolas :
+                if escola.id == a4:
+                    a4= escola
+            conjParadas.append(Parada(a1,a2,a3,a4,a5))
+        paradas.append(conjParadas)
+        arqParadas.close()
+
+
+        # Prepara a garegem que ficará a um ponto médio entre as paradas
+        garagens.append(prepararGaragemTeste(conjParadas))
+
+
+        # Prepara os dois conjuntosde onibus para o teste
+        conjOnibus= []
+            # Prepara onibus pra teste com tempo de atendimento 2700
+        aux= []
+        for j in range(100):
+            aux.append(Onibus(garagens[-1],2700,66))
+        conjOnibus.append(aux)
+            # Prepara onibus pra teste com tempo de atendimento 5400
+        aux= []
+        for k in range(100):
+            aux.append(Onibus(garagens[-1],5400,66))
+        conjOnibus.append(aux)
+        frotas.append(conjOnibus)
+    
+
+        
+    '''
+    # mostrar os conjuntos
+    for i in range(1):
+        for parada in paradas[i]:
+            print (parada)
+
+        print(garagens[i])
+
+        for escola in escolas[i]:
+            print(escola)
+
+        for conjOnibus in frotas[i]:
+            for onibus in conjOnibus:
+                print(onibus)
+    '''
+
+    # Chama o teste
+    problema.sbrpTestesPark([garagens[0]],frotas[0][0], escolas[0],paradas[0])
