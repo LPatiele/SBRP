@@ -35,6 +35,7 @@ if __name__ == '__main__':
     escolas = []
     garagens = [] 
     frotas = []  
+    hMin= [0,0,0,0,0,0,0,0]
     # Ler os arquivos
 
     x=0
@@ -48,6 +49,9 @@ if __name__ == '__main__':
         conjEscolas = []
         for linha in texto :
             a1,a2,a3,a4,a5 = linha.split()
+            if hMin[i-1] == 0 or hMin[i-1] > int(a5):
+                hMin[i-1]=int(a5)
+                print ("QQQQ" + str(hMin))
             conjEscolas.append(Escola(a1,a2,a3,a4,a5))
         escolas.append(conjEscolas)
         arqEscolas.close()
@@ -74,13 +78,13 @@ if __name__ == '__main__':
         conjOnibus= []
             # Prepara onibus pra teste com tempo de atendimento 2700
         aux= []
-        for j in range(100):
-            aux.append(Onibus(garagens[-1],2700,66))
+        for j in range(1000):
+            aux.append(Onibus(garagens[-1],2700,66,hMin[i-1]))
         conjOnibus.append(aux)
             # Prepara onibus pra teste com tempo de atendimento 5400
         aux= []
-        for k in range(100):
-            aux.append(Onibus(garagens[-1],5400,66))
+        for k in range(1000):
+            aux.append(Onibus(garagens[-1],5400,66,hMin[i-1]))
         conjOnibus.append(aux)
         frotas.append(conjOnibus)
     
@@ -89,6 +93,7 @@ if __name__ == '__main__':
     '''
     # mostrar os conjuntos
     for i in range(1):
+        
         for parada in paradas[i]:
             print (parada)
 
@@ -96,7 +101,7 @@ if __name__ == '__main__':
 
         for escola in escolas[i]:
             print(escola)
-
+        
         for conjOnibus in frotas[i]:
             for onibus in conjOnibus:
                 print(onibus)
