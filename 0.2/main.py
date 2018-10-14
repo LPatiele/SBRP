@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import time
+from datetime import date, datetime, time, timedelta
 from pty import fork
+from ssl import cert_time_to_seconds
 
 from grasp import Grasp
-from models import Parada, Escola, Garagem, Onibus
+from models import Escola, Garagem, Onibus, Parada
 
 
 def prepararGaragemTeste(conjParadas):
@@ -27,7 +30,10 @@ def verificarParadas(conjParadas):
             if p1.latitude == p2.latitude and p1.longitude == p2.longitude and p1.id != p2.id:
                 print ("P1: {} e P2: {}".format(p1,p2))
 
-
+def transformaParaTime(tempostr):
+    tempo = time(hour=int(tempostr[:2]),minute= int(tempostr[2:]),second = 0)
+    #print("hora : {} , min: {}, seg: {}".format(tempo.hour, tempo.minute, tempo.second))
+    return tempo
 
 if __name__ == '__main__':
     problema = Grasp()
@@ -35,23 +41,40 @@ if __name__ == '__main__':
     escolas = []
     garagens = [] 
     frotas = []  
-    hMin= [0,0,0,0,0,0,0,0]
     # Ler os arquivos
 
     x=0
     y=0
 
+    seg=3600 # quantidade de segundos a ser somado no tempo
+    '''
+    td= datetime.strptime(str(timedelta(seconds=seg)), "%H:%M:%S").time()
+    print(td)
+    print(type(td))
+    '''
+    teste= time(5,25,00)
+
+    
+    deltaMais = datetime.combine(date(1,1,1), teste) + timedelta(seconds=seg)
+    #deltaMenos= td +teste
+    print(teste)
+    print(deltaMais)
+    teste= deltaMais.time()
+    print(teste)
+    #print(deltaMenos)
+    
+    '''
     # Lendo arquivos e cria os conjuntos para teste com instanias de Park
     for i in range(1,9):
+        print("RSB0{}".format(i))
         # Prepara os oito conjuntos de paradas
         arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Schools.txt', 'r')
         texto = arqEscolas.readlines()[1:] # Lê o arquivo pulando a primeira linha q é legendas
         conjEscolas = []
         for linha in texto :
             a1,a2,a3,a4,a5 = linha.split()
-            if hMin[i-1] == 0 or hMin[i-1] > int(a5):
-                hMin[i-1]=int(a5)
-                print ("QQQQ" + str(hMin))
+            a4 = transformaParaTime(a4)
+            a5 = transformaParaTime(a5)
             conjEscolas.append(Escola(a1,a2,a3,a4,a5))
         escolas.append(conjEscolas)
         arqEscolas.close()
@@ -79,18 +102,18 @@ if __name__ == '__main__':
             # Prepara onibus pra teste com tempo de atendimento 2700
         aux= []
         for j in range(1000):
-            aux.append(Onibus(garagens[-1],2700,66,hMin[i-1]))
+            aux.append(Onibus(j,garagens[-1],2700,66))
         conjOnibus.append(aux)
             # Prepara onibus pra teste com tempo de atendimento 5400
         aux= []
         for k in range(1000):
-            aux.append(Onibus(garagens[-1],5400,66,hMin[i-1]))
+            aux.append(Onibus(k,garagens[-1],5400,66))
         conjOnibus.append(aux)
         frotas.append(conjOnibus)
     
 
         
-    '''
+    
     # mostrar os conjuntos
     for i in range(1):
         
@@ -105,7 +128,8 @@ if __name__ == '__main__':
         for conjOnibus in frotas[i]:
             for onibus in conjOnibus:
                 print(onibus)
-    '''
+    
 
     # Chama o teste
     problema.sbrpTestesPark([garagens[0]],frotas[0][0], escolas[0],paradas[0])
+    '''

@@ -42,16 +42,17 @@ class Garagem:
 
 
 class Onibus:
-    def __init__(self, garagem, tempoMaxRota, capacidade, minHorario):
-        self.id= random.randint(1000,3000)
-        self.garagem= garagem
-        self.horarioAtendimento= float((minHorario*60) -13200) # Considerando que os motoristas comecem a trabahar as  4 da manha (tempo em segundos)
-        self.capacidade= capacidade # 66 para os testes
-        self.lotacao=0
-        self.escola= []
-        self.localAtual= garagem
-        self.tempoRota= 0.0
-        self.tempoMaxRota= tempoMaxRota # 2700 (45 min) e 5400 (75 min) para os testes tempo maximo de um aluno na rota
+    def __init__(self,id, garagem, tempoMaxRota, capacidade):
+        self.id = id
+        self.garagem = garagem
+        self.permissaoAtendimento = False
+        self.capacidade = capacidade # 66 para os testes
+        self.fimEspediente = 0.0
+        self.lotacao = 0
+        self.escola = []
+        self.localAtual = garagem
+        self.tempoRota = 0.0
+        self.tempoMaxRota = tempoMaxRota # 2700 (45 min) e 5400 (75 min) para os testes tempo maximo de um aluno na rota
 
     def __str__(self):
         # try:

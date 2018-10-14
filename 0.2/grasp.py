@@ -22,9 +22,9 @@ class Grasp:
         self.rotaFinal=[]
 
     def distancia(self, localA, localB):
-        # calcula a distancia euclidiana entre dois pontos
-        x= (localA.latitude - localB.latitude)**2 +(localA.longitude - localB.longitude)**2
-        return math.sqrt(x)
+        # calcula a distancia rectliniar entre dois pontos
+        x = abs(localA.latitude - localB.latitude) + abs(localA.longitude - localB.longitude)
+        return x
         '''
         # calcula distancia entre coordenadas geograficas
         dla = float(((localA.latitude - localB.latitude)/60)*1852) #diferença entre as latitudes em metros
@@ -72,21 +72,18 @@ class Grasp:
         return self.criarLRC(fatorRandomizacao, matrizCustos)
 
     def tempoTrecho(self, dist): 
-        dist = dist/5280 #transformando de pés para milhas
-        tempo= (dist/20)*3600 # Tempo em segundos (mesmo usado por park)
-        #tempo = (float)(dist/8.8888888889) # t=s/v , sendo s em metros e v em m/s e t em segundos
-        #return (tempo/60.0) # em minutos
-        #return (tempo/60.0/60.0) # em segundos
-        print("tempo trecho: {}".format(tempo))
+        dist = dist/5280.0 #transformando de pés para milhas
+        tempo= (dist/20.0)*3600.0 # Tempo em segundos (mesmo usado por park)
+        #print("tempo trecho: {}".format(tempo))
         return tempo
 
     def tempoEmbarque(self, qtAlunos): 
-        tempo =(float)( 19.0 + 2.6 *qtAlunos) 
+        tempo =float( 19.0 + 2.6 *qtAlunos) 
         #return (float)(tempo/60) # em minutos
         return tempo # em segundos
 
     def tempoDesembarque(self, qtAlunos): 
-        tempo =(float)( 26.0 + 1.9 *qtAlunos)
+        tempo =float( 26.0 + 1.9 *qtAlunos)
         #return (float)(tempo/60) # em minutos
         return tempo # em segundos
 
@@ -142,20 +139,18 @@ class Grasp:
             parada = None
 
               
-            if not self.rotaFinal or (onibus.horarioAtendimento <= 0): # Verifica se é a primeira rota ou se o onibus não pode mais atenter o horario da escola de menor horário de estrada
+            if not self.rotaFinal or onibus.permissaoAtendimento: # Verifica se é a primeira rota ou se o onibus não pode mais atenter o horario da escola de menor horário de estrada
                 if self.rotaFinal:
-                    print("Novo   " + str(onibus.horarioAtendimento))
+                    print("Novo   " + str(onibus.permissaoAtendimento))
                 # Se tiver construindo a primeira subrota nenhum onibus estava alocado então seleciono um
                 onibus = random.choice(self.conjOnibus) # pega um onibus aleatório no conj de onibus
                 self.conjOnibus.remove(onibus) # removo-o do conj de onibus 
                 self.conjOnibusUteis.append(onibus) # acloco-o no conj de onibus
                 subRota.append(onibus.localAtual)
-                #print(" if 1")
             else:
-                #print(" if 2")
-                #print('orário bus:'+ str(onibus.horarioAtendimento))
+                #print('orário bus:'+ str(onibus.permissaoAtendimento))
                 # gerar nova rota pro mesmo busao
-                print("Antigo   " + str(onibus.horarioAtendimento))
+                print("Antigo   " + str(onibus.permissaoAtendimento))
                 subRota.append(onibus.localAtual)
                 onibus.tempoRota=0.0 # limpa o tempo pra gerar uma nova rota
                 onibus.lotacao= 0 # limpa a lotação do busão
@@ -220,11 +215,18 @@ class Grasp:
                 onibus.localAtual = onibus.escola[-1] # atualiza local de onibus
             ''' 
             
-            # Aplica melhoria na sub rota
-            subRota = self.melhoriaDeRota(subRota)
+            
+            subRota = self.melhoriaDeRota(subRota) # Aplica melhoria na sub rota
 
-            # Atualiza o harário de tempo de trabalho do onibus
-            onibus.horarioAtendimento = onibus.horarioAtendimento - self.tempoDaRota(subRota)
+            onibus.fimEspediente += self.tempoDaRota(subRota) # Soma ao expediente do onibuso tempo dessa sub rota
+
+            # Atualiza a permissão de atender mais rotas do onibus
+            marcadorTempo= 0.0
+            for stop in self.conjParadas:
+                if marcadorTempo >= stop.escola.horarioInicioAulasMax or marcadorTempo == 0.0:
+                    marcadorTempo = stop.escola.horarioInicioAulasMax
+            if marcadorTempo >= onibus.fimEspediente:
+                onibus.permissaoAtendimento = False
        
             # Incluia sub rota no conj de rotas
             self.rotaFinal.append(subRota)
@@ -246,6 +248,7 @@ class Grasp:
         #     printConj(subrota, 'rota')
 
         #print(self.rotaFinal)
+        resultado.close()
 
     def sbrpComercial(conjGaragens, conjOnibus, conjEstudantes, conjEscolas,conjParadas):# Não funciona ainda
         # Versão de uso
