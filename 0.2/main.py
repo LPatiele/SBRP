@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import time
 from datetime import date, datetime, time, timedelta
-from pty import fork
-from ssl import cert_time_to_seconds
+
 
 from grasp import Grasp
 from models import Escola, Garagem, Onibus, Parada
@@ -45,13 +43,13 @@ if __name__ == '__main__':
 
     x=0
     y=0
-
+    '''
     seg=3600 # quantidade de segundos a ser somado no tempo
-    '''
-    td= datetime.strptime(str(timedelta(seconds=seg)), "%H:%M:%S").time()
-    print(td)
-    print(type(td))
-    '''
+    
+    #td= datetime.strptime(str(timedelta(seconds=seg)), "%H:%M:%S").time()
+    #print(td)
+    #print(type(td))
+
     teste= time(5,25,00)
 
     
@@ -62,11 +60,11 @@ if __name__ == '__main__':
     teste= deltaMais.time()
     print(teste)
     #print(deltaMenos)
-    
     '''
+    
     # Lendo arquivos e cria os conjuntos para teste com instanias de Park
     for i in range(1,9):
-        print("RSB0{}".format(i))
+        #print("RSB0{}".format(i))
         # Prepara os oito conjuntos de paradas
         arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Schools.txt', 'r')
         texto = arqEscolas.readlines()[1:] # Lê o arquivo pulando a primeira linha q é legendas
@@ -113,13 +111,13 @@ if __name__ == '__main__':
     
 
         
-    
+    '''
     # mostrar os conjuntos
     for i in range(1):
         
         for parada in paradas[i]:
             print (parada)
-
+        
         print(garagens[i])
 
         for escola in escolas[i]:
@@ -128,8 +126,8 @@ if __name__ == '__main__':
         for conjOnibus in frotas[i]:
             for onibus in conjOnibus:
                 print(onibus)
-    
+    '''
 
     # Chama o teste
     problema.sbrpTestesPark([garagens[0]],frotas[0][0], escolas[0],paradas[0])
-    '''
+    

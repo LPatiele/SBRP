@@ -2,6 +2,7 @@
 import random
 from datetime import time
 
+
 class Escola:
     def __init__(self, id, x, y, hmin,hmax):
         self.nome= ''.join(random.choice("asdfghjklçqwertyuiopzxcvbnm") for _ in range(10) ) 
@@ -9,9 +10,12 @@ class Escola:
         self.id= id
         self.latitude= float(x)
         self.longitude= float(y)
-        self.horarioInicioAulasMin = 25200   #float(hmin * 60) # em segundos
-        self.horarioInicioAulasMax = 25100   #float(hmax * 60) # em segundos
+        self.horarioInicioAulasMin = hmin   # BUG mudar grasp pra aceitar time
+        self.horarioInicioAulasMax = hmax   # BUG mudar grasp pra aceitar time
         #self.matrizDistancia = {}
+
+    def get_horarioInicioAulasMin(self):
+        return self.horarioInicioAulasMin
 
     def __str__(self):
         return  'ESCOLA id:{}, latitude:{}, longitude:{}, hmin:{}, hmax:{}'.format(self.id,self.latitude,self.longitude,self.horarioInicioAulasMin,self.horarioInicioAulasMax)
@@ -45,20 +49,21 @@ class Onibus:
     def __init__(self,id, garagem, tempoMaxRota, capacidade):
         self.id = id
         self.garagem = garagem
-        self.permissaoAtendimento = False
+        self.permissaoAtendimento = True
         self.capacidade = capacidade # 66 para os testes
-        self.fimEspediente = 0.0
-        self.lotacao = 0
-        self.escola = []
+        self.inicioEspediente = time(3,0,0)
+        self.fimEspediente = time(0,0,0) # BUG mudar grasp pra aceitar time
+        self.lotacao = 0 
+        self.escolas = []
         self.localAtual = garagem
         self.tempoRota = 0.0
-        self.tempoMaxRota = tempoMaxRota # 2700 (45 min) e 5400 (75 min) para os testes tempo maximo de um aluno na rota
+        self.tempoMaxRota = tempoMaxRota # 2700 (45 min) e 5400 (90 min) para os testes tempo maximo de um aluno na rota
 
     def __str__(self):
         # try:
-        #     return 'Identificacao: ' + str(self.identificacao) + ' Garagem: ' + str(self.garagem.nome) + ' Escola: ' + str(self.escola.nome)
+        #     return 'Identificacao: ' + str(self.identificacao) + ' Garagem: ' + str(self.garagem.nome) + ' Escola: ' + str(self.escolas.nome)
         # except :
-        return 'ONIBUS Id:{} garagem:{},{} capacidade:{} tempo:{}'.format(self.id, self.garagem.latitude, self.garagem.longitude, self.capacidade,self.horarioAtendimento)
+        return 'ONIBUS Id:{} garagem:{},{} capacidade:{} permissaoAtendimento:{}'.format(self.id, self.garagem.latitude, self.garagem.longitude, self.capacidade,self.permissaoAtendimento)
 
 
 class Parada:
