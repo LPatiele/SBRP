@@ -44,7 +44,6 @@ class Garagem:
     def __str__(self):
         return  'GARAGEM x:{}  y:{}'.format(self.latitude, self.longitude)
 
-
 class Onibus:
     def __init__(self,id, garagem, tempoMaxRota, capacidade):
         self.id = id
@@ -56,22 +55,20 @@ class Onibus:
         self.lotacao = 0 
         self.escolas = []
         self.localAtual = garagem
-        self.tempoRota = 0.0
         self.tempoMaxRota = tempoMaxRota # 2700 (45 min) e 5400 (90 min) para os testes tempo maximo de um aluno na rota
 
     def __str__(self):
         # try:
         #     return 'Identificacao: ' + str(self.identificacao) + ' Garagem: ' + str(self.garagem.nome) + ' Escola: ' + str(self.escolas.nome)
         # except :
-        return 'ONIBUS Id:{} garagem:{},{} capacidade:{} permissaoAtendimento:{}'.format(self.id, self.garagem.latitude, self.garagem.longitude, self.capacidade,self.permissaoAtendimento)
-
+        return 'ONIBUS Id:{} inicio:{} fim:{} capacidade:{} permissaoAtendimento:{}'.format(self.id, self.inicioEspediente, self.fimEspediente, self.capacidade,self.permissaoAtendimento)
 
 class Parada:
     def __init__(self, id, x, y, escolas, quantAlunos):
         self.id = id
         self.latitude =  float(x)
         self.longitude = float(y)
-        self.qtAlunos = int(quantAlunos) # random.randint(1,3)
+        self.qtAlunos = int(quantAlunos) # random.dranint(1,3)
         self.escola = escolas
         #self.matrizDistancia = {}
         

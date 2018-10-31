@@ -64,6 +64,7 @@ if __name__ == '__main__':
     
     # Lendo arquivos e cria os conjuntos para teste com instanias de Park
     for i in range(1,9):
+        print(i)
         #print("RSB0{}".format(i))
         # Prepara os oito conjuntos de paradas
         arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Schools.txt', 'r')
@@ -99,14 +100,15 @@ if __name__ == '__main__':
         conjOnibus= []
             # Prepara onibus pra teste com tempo de atendimento 2700
         aux= []
-        for j in range(1000):
+        for j in range(3000):
             aux.append(Onibus(j,garagens[-1],2700,66))
         conjOnibus.append(aux)
             # Prepara onibus pra teste com tempo de atendimento 5400
         aux= []
-        for k in range(1000):
+        for k in range(3000):
             aux.append(Onibus(k,garagens[-1],5400,66))
         conjOnibus.append(aux)
+
         frotas.append(conjOnibus)
     
 
@@ -122,12 +124,13 @@ if __name__ == '__main__':
 
         for escola in escolas[i]:
             print(escola)
-        
+    #    
         for conjOnibus in frotas[i]:
             for onibus in conjOnibus:
                 print(onibus)
     '''
-
+    #print(frotas[7][0])
+    # frotas[instancias][restrição de tempo]
     # Chama o teste
-    problema.sbrpTestesPark([garagens[0]],frotas[0][0], escolas[0],paradas[0])
+    problema.sbrpTestesParkSL([garagens[7]],frotas[7][0], escolas[7],paradas[7])
     
