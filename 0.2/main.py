@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from datetime import date, datetime, time, timedelta
-
+from os import remove
 
 from grasp import Grasp
 from models import Escola, Garagem, Onibus, Parada
 
+import copy
 
 def prepararGaragemTeste(conjParadas):
     count=0
@@ -60,11 +61,17 @@ if __name__ == '__main__':
     teste= deltaMais.time()
     print(teste)
     #print(deltaMenos)
-    '''
     
+    rota =[0, 1,2,3]
+    for idx, bus in enumerate(rota[:-1]):
+        print(idx,bus)
+
+
+    print(rota[-1])
+    '''
     # Lendo arquivos e cria os conjuntos para teste com instanias de Park
     for i in range(1,9):
-        print(i)
+        
         #print("RSB0{}".format(i))
         # Prepara os oito conjuntos de paradas
         arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Schools.txt', 'r')
@@ -111,8 +118,8 @@ if __name__ == '__main__':
 
         frotas.append(conjOnibus)
     
-
-        
+   
+       
     '''
     # mostrar os conjuntos
     for i in range(1):
@@ -129,8 +136,24 @@ if __name__ == '__main__':
             for onibus in conjOnibus:
                 print(onibus)
     '''
+    
     #print(frotas[7][0])
     # frotas[instancias][restrição de tempo]
     # Chama o teste
+    '''
+    aux=[1,2,3,4,5,6,7,8,9]
+    x=[7,8,9]
+    for i in aux[1:-(len(x))]:
+        print(i)
+
+    for i in  range(2, len(aux)-(len(x))):
+        print(i ,  aux[i], aux[i-1])
+
+    
+    '''
     problema.sbrpTestesParkSL([garagens[7]],frotas[7][0], escolas[7],paradas[7])
+    '''
+    for onibus in problema.conjOnibusUteis:
+        print(onibus.escolas)
+    '''
     

@@ -50,7 +50,7 @@ class Onibus:
         self.garagem = garagem
         self.permissaoAtendimento = True
         self.capacidade = capacidade # 66 para os testes
-        self.inicioEspediente = time(3,0,0)
+        self.inicioEspediente = time(0,0,0)
         self.fimEspediente = time(0,0,0) # BUG mudar grasp pra aceitar time
         self.lotacao = 0 
         self.escolas = []

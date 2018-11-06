@@ -111,15 +111,15 @@ class Grasp:
             
     def melhoriaDeRota(self, rota): # algoritmo 2-opt
         # a primeira parada da rota é a garagem e portanto não deve poder trocar a ordem de visita da garagem com uma parada
-        # assim como a ultima parada é a escola visitada
-        for i in  range(1, len(rota)-(len(self.conjOnibusUteis[-1].escolas)+1)):
+        # assim como sa ultimas paradas são as escolas visitadas
+        for i in  range(2, len(rota)-len(self.conjOnibusUteis[-1].escolas)):
             aux = copy.copy(rota)
             temp = aux[i]
-            aux[i] = aux[i+1]
-            aux[i+1] = temp
+            aux[i] = aux[i-1]
+            aux[i-1] = temp
             #print ("tempo aux :{} Tempo rota: {}".format(self.tempoDaRota(aux),self.tempoDaRota(rota)))
             if self.tempoDaRota(rota) > self.tempoDaRota(aux): # se trocando a ordem de visita entre duas paradas o caminho ficar menor eu troco a ordem das paradas
-                #print("TROCOU  ", aux[i], aux[i+1])
+                #print("TROCOU  ", aux[i], aux[i-1])
                 rota = copy.copy(aux)
             #print("tempo da rota:{}".format(self.tempoDaRota(rota)))
         return rota
@@ -129,8 +129,8 @@ class Grasp:
         return soma.time()
 
     def subSegundos(self, tempo, segundos): # subtrai segundos de um horário
-        soma = datetime.combine(date(1,1,1), tempo) - timedelta(seconds=segundos)
-        return soma.time()
+        sub = datetime.combine(date(1,1,1), tempo) - timedelta(seconds=segundos)
+        return sub.time()
 
     def diferencaTempo(self, tempo1, tempo2): # calcula a diferença de tempo entre dois horários
         tempo1= datetime.combine(date(1,1,1), tempo1)
@@ -143,7 +143,12 @@ class Grasp:
 
     def tempoRotaComCarga(self,rota,escolas): #conta o tempo da rota em que há alunos no onibus
         aux = copy.copy(rota)
-        aux.append(escolas[-1])
+        aux.extend(escolas)
+        # retorna o tempo da rota desconsiderando a viagem vazia da garagem à primeira parada
+        return self.tempoDaRota(aux) - self.tempoTrecho(self.distancia(aux[0],aux[1]))
+
+    def tempoRotaComCarga_(self,rota): #conta o tempo da rota em que há alunos no onibus
+        aux = copy.copy(rota)
         # retorna o tempo da rota desconsiderando a viagem vazia da garagem à primeira parada
         return self.tempoDaRota(aux) - self.tempoTrecho(self.distancia(aux[0],aux[1]))
 
@@ -166,13 +171,102 @@ class Grasp:
             print("escola: inicio {} , fim {}".format(onibus.escolas[-1].horarioInicioAulasMin, onibus.escolas[-1].horarioInicioAulasMax))
             self.printConj(self.miniRotas[onibus], "SUB ROTA:{} ".format(1))
 
-    def otimizaRotas(self): #BUG faz nada ainda
-        #self.ajustaJanela() # Chamar aqui depois
+    def otimizaRotas(self): 
+        ######### Método 3 de união de mini rotas #########
+        for onibus in self.miniRotas:
+            
+            if self.rotas == []:
+                self.rotas.append([onibus])
+                
+            else:
+                novaRota= True # marca se esse onibus foi inserido ou se será o inicio de uma nova rota
+                for rota in self.rotas:
+                       
+                    if onibus.fimEspediente < rota[0].inicioEspediente or self.somaSegundos( rota[0].fimEspediente , self.diferencaTempo(rota[0].inicioEspediente, onibus.fimEspediente)) <= rota[0].escolas[-1].horarioInicioAulasMax:
+                        # tento colocar no inicio da rota
+                        if not onibus.fimEspediente < rota[0].inicioEspediente: #  ajusto a janela do bus caso nescessário
+                            rota[0].fimEspediente = self.somaSegundos( rota[0].fimEspediente, self.diferencaTempo(rota[0].inicioEspediente, onibus.fimEspediente))
+                            rota[0].inicioEspediente = self.somaSegundos(rota[0].inicioEspediente, self.diferencaTempo(rota[0].inicioEspediente, onibus.fimEspediente))
+                        rota.insert(0,onibus)
+                        novaRota= False
+                    elif rota[-1].fimEspediente < onibus.inicioEspediente or self.somaSegundos(onibus.fimEspediente, self.diferencaTempo(onibus.inicioEspediente, rota[-1].fimEspediente)) <= onibus.escolas[-1].horarioInicioAulasMax:
+                        # tento colocar no final da rota
+                        if not rota[-1].fimEspediente < onibus.inicioEspediente: #  ajusto a janela do bus caso nescessário
+                            onibus.fimEspediente = self.somaSegundos(onibus.fimEspediente, self.diferencaTempo(onibus.inicioEspediente, rota[-1].fimEspediente))
+                            onibus.inicioEspediente =self.somaSegundos( onibus.inicioEspediente, self.diferencaTempo(onibus.inicioEspediente, rota[-1].fimEspediente))
+                        rota.append(onibus)
+                        novaRota= False
+                    elif len(rota)>1:
+                        # tento colocar no meio da rota
+                        for idx, bus in enumerate(rota[:-1]): # comparar entre bus e rota[idx+1]
+                            # se o tempo da rota + os novos trechos for menor ou igual 
+                            # ao espaço de tempo entre a mini rota do bus atual e do proximo
+                            # e o ajuste de onibus.fimEspediente estiver dentro da janela de tempo da escolas eu insiro aqui
+                            if (self.tempoRotaComCarga_(self.miniRotas[onibus]) + self.tempoTrecho(self.distancia(self.miniRotas[bus][-1], self.miniRotas[onibus][1]))) <= self.diferencaTempo(bus.fimEspediente,rota[idx+1].inicioEspediente):
+                                # Verifico se o tempo de percurso com alunos + o tempo do fim da linha de bus ate a primeira parada de onibus é menos que o tempo entre o fim da mini rota de bus e o inicio da minirota do próximo onibus
+                                condA = self.somaSegundos(bus.fimEspediente , self.tempoRotaComCarga_(self.miniRotas[onibus]) + self.tempoTrecho(self.distancia(self.miniRotas[bus][-1], self.miniRotas[onibus][1]))) <= onibus.escolas[-1].horarioInicioAulasMax
+                                # condA é um verificador se respeita a restrição de tempo máximo da escolas do onibus se ajustar o tempo a partir do fim da mini rota anterior
+                                condB = self.somaSegundos(bus.fimEspediente , self.tempoRotaComCarga_(self.miniRotas[onibus]) + self.tempoTrecho(self.distancia(self.miniRotas[bus][-1], self.miniRotas[onibus][1]))) >= onibus.escolas[-1].horarioInicioAulasMin
+                                # condA é um verificador se respeita a restrição de tempo minimo da escolas do onibus se ajustar o tempo a partir do fim da mini rota anterior
+                                try:
+                                    condC = self.subSegundos(rota[idx+1].inicioEspediente ,(self.tempoTrecho(self.distancia(self.miniRotas[onibus][-1], self.miniRotas[rota[idx+1]][1])))) <= onibus.escolas[-1].horarioInicioAulasMax
+                                    # condC é um verificador se respeita a restrição de tempo máximo da escolas do onibus se ajustar o tempo tendo como tempo final o tempo da inicio da próxima rota
+                                except:
+                                    condC = False
+                                try:
+                                    condD = self.subSegundos(rota[idx+1].inicioEspediente ,(self.tempoTrecho(self.distancia(self.miniRotas[onibus][-1], self.miniRotas[rota[idx+1]][1])))) >= onibus.escolas[-1].horarioInicioAulasMin
+                                    # condD é um verificador se respeita a restrição de tempo minimo da escolas do onibus se ajustar o tempo tendo como tempo final o tempo da inicio da próxima rota
+                                except:
+                                    condD = False
+                                if (condA and condB):
+                                    # munda a garagem de onibus e de rota[idx+1]
+                                    onibus.garagem =self.miniRotas[bus][-1]
+                                    self.miniRotas[onibus][0]=onibus.garagem
+                                    rota[idx+1].garagem =self.miniRotas[onibus][-1]
+                                    self.miniRotas[rota[idx+1]][0]=rota[idx+1].garagem
+                                    # Altero o tempo de inicio e fim da rota de onibus
+                                    onibus.inicioEspediente = bus.fimEspediente
+                                    onibus.fimEspediente = self.somaSegundos(onibus.inicioEspediente , self.tempoDaRota(self.miniRotas[onibus]))
+                                    #Insere onibus na rota
+                                    rota.insert(idx+1,onibus)
+                                    novaRota= False
+                                elif (condC and condD): 
+                                    # munda a garagem de onibus e de rota[idx+1]
+                                    onibus.garagem =self.miniRotas[bus][-1]
+                                    self.miniRotas[onibus][0]=onibus.garagem
+                                    rota[idx+1].garagem =self.miniRotas[onibus][-1]
+                                    self.miniRotas[rota[idx+1]][0]=rota[idx+1].garagem
+                                    # Altero o tempo de inicio e fim da rota de onibus
+                                    onibus.fimEspediente = rota[idx+1].inicioEspediente
+                                    onibus.inicioEspediente = self.subSegundos(onibus.fimEspediente,self.tempoDaRota(self.miniRotas[onibus]))
+                                    # Insere onibus na rota
+                                    rota.insert(idx+1,onibus)
+                                    novaRota= False
+                                else:
+                                    pass
+                            if not novaRota:
+                                break            
+                    
+                if novaRota:
+                    self.rotas.append([onibus])
+
+        '''
+        ######### Método 3 de união de mini rotas #########
+        aux = copy.copy(self.conjOnibusUteis)
+        while aux:
+            bus= random.choice(aux)
+            if self.rotas == []:
+                self.rotas.append([bus])
+            else: # tenta inserir nas rotas que ja existem
+                pass
+
+
+        ######### Método 1 de união de mini rotas #########
         aux = copy.copy(self.conjOnibusUteis)
         
         for onibus1 in aux:
             rota = []
-
+            aux.remove(onibus1)
             marcador= None
             for onibus2 in aux: # Verifico se da pra colocar algum percurso antes
                 if onibus2.fimEspediente < onibus1.inicioEspediente:
@@ -191,8 +285,7 @@ class Grasp:
 
             #rota.append(self.miniRotas[onibus1])
             rota.append(onibus1)
-            aux.remove(onibus1)
-
+            
             marcador= None
             for onibus2 in aux: # Verifico se da pra colocar algum percurso depois
                 if onibus1.fimEspediente < onibus2.inicioEspediente:
@@ -211,16 +304,49 @@ class Grasp:
             
 
             self.rotas.append(rota)
+        '''
 
-        self.printMiniRotas()
+        '''
+        cont1=0
+        cont2=0
+        for id,rota1 in enumerate(self.rotas): # a rotaX é a rota que estou tentando eliminar na interação
+            for onibus1 in rota1:
+                removido= False
+                for rota2 in self.rotas: # aqui eu percorro as outras rotas tentanto inserir a miniRota do onibus
+                    for idx, onibus2 in enumerate(rota2[:-1]):
+                        print("o")
+                        cont1 +=1
+                        if (self.tempoRotaComCarga_(self.miniRotas[onibus1]) + self.tempoTrecho(self.distancia(self.miniRotas[onibus2][-1], self.miniRotas[onibus1][0]))) <= self.diferencaTempo(rota[idx].fimEspediente,onibus2.inicioEspediente):
+                            # se o tempo do percurso realizado pelo onibus
+                            cont2 +=1
+                            rota2.insert(idx+1,onibus1)
+                            rota1.remove(onibus1)
+                            removido=True
+                            break
+                            print ("l")
+                    if removido:
+                        break
+                if removido:
+                    break
+
+        for rota in self.rotas:
+            if len(rota) == 0:
+                self.rotas.remove(rota)
+                print("porra")
+        
+        '''
+        #self.printMiniRotas()
         i=1
         for rota in self.rotas:
             print ("************", i, "********")
             for onibus in rota:
                 print(onibus)
                 self.printConj(self.miniRotas[onibus],"parte de "+ str(i))
+                print("     ")
             print("inicio= {}     fim= {}".format(rota[0].inicioEspediente, rota[-1].fimEspediente))
             i +=1
+
+       
 
         
 
@@ -234,8 +360,7 @@ class Grasp:
         rota2[0]= rota1[-1] 
         if auxBus1.fimEspediente < auxBus2.inicioEspediente:
             pass
-            
-
+    
     def respeitaCondicoes(self, rota, onibus, parada): # Verifica todas as condições nescessárias para acrescentar uma parada na sub rota
         rotaAux= copy.copy(rota)
         rotaAux.append(parada)
