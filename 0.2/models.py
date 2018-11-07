@@ -64,12 +64,12 @@ class Onibus:
         return 'ONIBUS Id:{} inicio:{} fim:{} capacidade:{} permissaoAtendimento:{}'.format(self.id, self.inicioEspediente, self.fimEspediente, self.capacidade,self.permissaoAtendimento)
 
 class Parada:
-    def __init__(self, id, x, y, escolas, quantAlunos):
+    def __init__(self, id, x, y, escola, quantAlunos):
         self.id = id
         self.latitude =  float(x)
         self.longitude = float(y)
         self.qtAlunos = int(quantAlunos) # random.dranint(1,3)
-        self.escola = escolas
+        self.escola = escola
         #self.matrizDistancia = {}
         
     def __str__(self):

@@ -172,7 +172,8 @@ class Grasp:
             self.printConj(self.miniRotas[onibus], "SUB ROTA:{} ".format(1))
 
     def otimizaRotas(self): 
-        ######### Método 3 de união de mini rotas #########
+        '''
+        ######### Método 2 de união de mini rotas #########
         for onibus in self.miniRotas:
             
             if self.rotas == []:
@@ -251,16 +252,124 @@ class Grasp:
                     self.rotas.append([onibus])
 
         '''
+        '''
         ######### Método 3 de união de mini rotas #########
         aux = copy.copy(self.conjOnibusUteis)
         while aux:
             bus= random.choice(aux)
             if self.rotas == []:
                 self.rotas.append([bus])
+                aux.remove(bus)
             else: # tenta inserir nas rotas que ja existem
-                pass
+                for rota in self.rotas:
+                    if bus.fimEspediente < rota[0].inicioEspediente or self.somaSegundos( rota[0].fimEspediente , self.diferencaTempo(rota[0].inicioEspediente, bus.fimEspediente)) <= rota[0].escolas[-1].horarioInicioAulasMax:
+                        # tento colocar no inicio da rota
+                        if not bus.fimEspediente < rota[0].inicioEspediente: #  ajusto a janela do bus caso nescessário
+                            rota[0].fimEspediente = self.somaSegundos( rota[0].fimEspediente, self.diferencaTempo(rota[0].inicioEspediente, bus.fimEspediente))
+                            rota[0].inicioEspediente = self.somaSegundos(rota[0].inicioEspediente, self.diferencaTempo(rota[0].inicioEspediente, bus.fimEspediente))
+                        rota.insert(0,bus)
+                        aux.remove(bus)
+                        break
+                    elif rota[-1].fimEspediente < bus.inicioEspediente or self.somaSegundos(bus.fimEspediente, self.diferencaTempo(bus.inicioEspediente, rota[-1].fimEspediente)) <= bus.escolas[-1].horarioInicioAulasMax:
+                        # tento colocar no final da rota
+                        if not rota[-1].fimEspediente < bus.inicioEspediente: #  ajusto a janela do bus caso nescessário
+                            bus.fimEspediente = self.somaSegundos(bus.fimEspediente, self.diferencaTempo(bus.inicioEspediente, rota[-1].fimEspediente))
+                            bus.inicioEspediente =self.somaSegundos( bus.inicioEspediente, self.diferencaTempo(bus.inicioEspediente, rota[-1].fimEspediente))
+                        rota.append(bus)
+                        aux.remove(bus)
+                        break
+                    else:
+                        self.rotas.append([bus])
+                        aux.remove(bus) 
+                        break
+        '''
+        ######### Método 4 de união de mini rotas ######### 
+        ############# Melhor resultado até agora ########
+        aux = copy.copy(self.conjOnibusUteis)
+        
+        for onibus1 in aux:
+            rota = []
+            aux.remove(onibus1)
+            marcador= None
+            bus= None
+            for onibus2 in aux: # Verifico se da pra colocar algum percurso antes
+                if onibus2.fimEspediente < onibus1.inicioEspediente:
+                    rotaAux= copy.copy(self.miniRotas[onibus1])
+                    rotaAux[0]= self.miniRotas[onibus2][-1]
+                    tempo= self.subSegundos(onibus1.fimEspediente,self.tempoDaRota(rotaAux)) 
+                    if onibus2.fimEspediente < tempo:
+                        marcador= onibus2
+                        self.miniRotas[onibus1]= rotaAux
+                        onibus1.inicioEspediente= tempo
+                        break
+            if marcador:
+                #rota.append(self.miniRotas[marcador])
+                rota.append(marcador)
+                bus=marcador
+                aux.remove(marcador)
 
+            #rota.append(self.miniRotas[onibus1])
+            rota.append(onibus1)    
 
+            marcador= None
+            if bus:
+                # tenta colocar um onibus antes de bus 
+                for onibus2 in aux: # Verifico se da pra colocar algum percurso antes de bus
+                    if onibus2.fimEspediente < bus.inicioEspediente:
+                        rotaAux= copy.copy(self.miniRotas[bus])
+                        rotaAux[0]= self.miniRotas[onibus2][-1]
+                        tempo= self.subSegundos(bus.fimEspediente,self.tempoDaRota(rotaAux)) 
+                        if onibus2.fimEspediente < tempo:
+                            marcador= onibus2
+                            self.miniRotas[bus]= rotaAux
+                            bus.inicioEspediente= tempo
+                            break
+                if marcador:
+                    #rota.append(self.miniRotas[marcador])
+                    rota.insert(0,marcador)
+                    aux.remove(marcador)    
+            bus= None
+
+            
+            marcador= None
+            for onibus2 in aux: # Verifico se da pra colocar algum percurso depois
+                if onibus1.fimEspediente < onibus2.inicioEspediente:
+                    rotaAux= copy.copy(self.miniRotas[onibus2])
+                    rotaAux[0]= self.miniRotas[onibus1][-1]
+                    tempo= self.subSegundos(onibus2.fimEspediente,self.tempoDaRota(rotaAux))
+                    if onibus1.fimEspediente < tempo:
+                        marcador= onibus2
+                        self.miniRotas[onibus2]= rotaAux
+                        onibus2.inicioEspediente= tempo
+                        break
+            if marcador:
+                #rota.append(self.miniRotas[marcador])
+                rota.append(marcador)
+                bus=marcador
+                aux.remove(marcador)
+                
+            marcador=None
+            if bus:
+                for onibus2 in aux: # Verifico se da pra colocar algum percurso depois de bus
+                    if bus.fimEspediente < onibus2.inicioEspediente:
+                        rotaAux= copy.copy(self.miniRotas[onibus2])
+                        rotaAux[0]= self.miniRotas[bus][-1]
+                        tempo= self.subSegundos(onibus2.fimEspediente,self.tempoDaRota(rotaAux))
+                        if bus.fimEspediente < tempo:
+                            marcador= onibus2
+                            self.miniRotas[onibus2]= rotaAux
+                            onibus2.inicioEspediente= tempo
+                            break
+                if marcador:
+                    #rota.append(self.miniRotas[marcador])
+                    rota.append(marcador)
+                    aux.remove(marcador)
+            bus= None
+            marcador= None
+
+            self.rotas.append(rota)
+
+        '''
         ######### Método 1 de união de mini rotas #########
         aux = copy.copy(self.conjOnibusUteis)
         
@@ -337,7 +446,7 @@ class Grasp:
         '''
         #self.printMiniRotas()
         i=1
-        for rota in self.rotas:
+        for rota in self.rotas[:5]:
             print ("************", i, "********")
             for onibus in rota:
                 print(onibus)
@@ -345,13 +454,7 @@ class Grasp:
                 print("     ")
             print("inicio= {}     fim= {}".format(rota[0].inicioEspediente, rota[-1].fimEspediente))
             i +=1
-
-       
-
-        
-
-                
-
+    
     def unirMiniRotas(self,onibus1,onibus2):
         auxBus1= copy.copy(onibus1)
         auxBus2= copy.copy(onibus2)
@@ -371,7 +474,14 @@ class Grasp:
         condHorarioEscola = self.somaSegundos(onibus.inicioEspediente,tempoRotaAux) <= parada.escola.horarioInicioAulasMax # Se o tempo de chegada à escola será respeitado
         conTempoViagem = self.tempoRotaComCarga(rotaAux,[parada.escola]) <= onibus.tempoMaxRota # Se o tempo de viagem com alunos no onibus respeita o limite dado
         return condLotacao and condHorarioEscola and conTempoViagem
-
+    '''
+    def paradasPossiveis(self, horario):
+        paradas=[]
+        for parada in self.conjParadas:
+            if horario< parada.escola.horarioInicioAulasMax:
+                paradas.apend(parada)
+        return paradas
+    '''
     def sbrpTestesParkSL(self,conjGaragens, conjOnibus, conjEscolas, conjParadas):# execulta os testes de tempo
         # Execulta com as instancias de Park
         # Faz análisas de tempo de execulsão
@@ -382,10 +492,11 @@ class Grasp:
         self.conjEscolas = sorted(conjEscolas, key= Escola.get_horarioInicioAulasMin) # setar as RSRB de Park ( http://logistics.postech.ac.kr/Mixed_SBRP_Benchmark.html )
         self.conjParadas = conjParadas #setar as RSRB de Park ( http://logistics.postech.ac.kr/Mixed_SBRP_Benchmark.html )
         
+        
         contEstourou=0
         
         i=1 # Um contador pra marcar as interações 
-
+        #onibusAnterior = None
         while self.conjParadas:
             # Enquanto o conjunto de paradas não estiver vazio
             resultado = open('resultado.txt', 'w')
@@ -399,9 +510,11 @@ class Grasp:
             self.conjOnibus.remove(onibus) # removo-o do conj de onibus 
             self.conjOnibusUteis.append(onibus) # acloco-o no conj de onibus utilizados
             subRota.append(onibus.localAtual) # inicializo a rota partindo da garagem
-            # Ao final da contrução de sub rotas eu tento mesclar as rotas pra diminuir o numero de onibus nescessários
+            # Ao final da contrução de sub rotas eu tento mesclar as rotas pra diminuir o numero de onibus nescessários chmando self.otimizaRotas
 
-            # BUG: Da pra trocar os dois while por do/while com carga mista ????
+            # BUG próxima modificação a tentar é tentar inicializar a rota a partir do onibus anterior se possivel
+            # Se o onibus ainda puder atender alguma parada ou seja se paradasPossiveis != [] ai o onibus atual receber
+            # como horario de inicio o horario final do onibus anterior e 
 
             # inicializo uma sub rota
             while len(subRota) == 1: # Enquanto só tiver a garagem
@@ -417,7 +530,7 @@ class Grasp:
 
             while(onibus.capacidade > onibus.lotacao and self.tempoRotaComCarga(subRota,onibus.escolas) < onibus.tempoMaxRota):# Verifica condições de capacidade do onibus e tempo de rota
 
-                lrc= self.listaRestritaDeCandidatosPorEscola(0.1, onibus.localAtual)
+                lrc= self.listaRestritaDeCandidatosInicial(0.1, onibus.localAtual)
                 #print("1 LRC:{}".format(lrc))
                 if lrc != None:
                     parada = random.choice(lrc)
@@ -430,6 +543,8 @@ class Grasp:
                         onibus.lotacao += parada.qtAlunos # atualiza a lotação do onibus
                         onibus.localAtual = parada # atualiza local de onibus
                         self.conjParadas.remove(parada)
+                        onibus.escolas.append(parada.escola) # atualiza as escolas para a qual o onibus ta fazendo rota
+                        onibus.escolas = list(set(onibus.escolas)) # retira repetições
 
                     else:
                         #print ("condição b: add escola na subrota se não tiver tempo ou capacidade")
@@ -439,21 +554,24 @@ class Grasp:
                         if not lotacaoBeP <= onibus.capacidade:
                             print("foi capacidade") 
                         '''   
-                        subRota.append(onibus.escolas[-1]) # adiciona a escola como ultima parada da subRota
-                        onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
+                        #subRota.append(onibus.escolas[-1]) # adiciona a escola como ultima parada da subRota
+                        #onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
                         break
                 else:
                     #print ("condição c: add escola na subrota se não tiver ais paradas na lrc")
-                    subRota.append(onibus.escolas[-1]) # adiciona a escola como ultima parada da subRota
-                    onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
+                    #subRota.append(onibus.escolas[-1]) # adiciona a escola como ultima parada da subRota
+                    #onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
                     break
-            
-            if not isinstance(subRota[-1],Escola):
+            '''
+            if not isinstance(subRota[-1],Escola) or subRota[-1] != onibus.escolas[-1]:
                 subRota.append(onibus.escolas[-1]) # adiciona as escolas como ultimas paradas da subRota
                 onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
-             
-            
-            
+            ''' 
+
+            #BUG tenhoque orgnizar as escolas a partir da ultima parada
+            subRota.extend(onibus.escolas) # adiciona as escolas como ultimas paradas da subRota
+            onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
+
             subRota = self.melhoriaDeRota(subRota) # Aplica melhoria na sub rota
 
             onibus.fimEspediente = self.somaSegundos(onibus.inicioEspediente, self.tempoDaRota(subRota)) # Soma ao expediente do onibuso tempo dessa sub rota
