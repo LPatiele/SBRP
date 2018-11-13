@@ -42,33 +42,7 @@ if __name__ == '__main__':
     frotas = []  
     # Ler os arquivos
 
-    x=0
-    y=0
-    '''
-    seg=3600 # quantidade de segundos a ser somado no tempo
-    
-    #td= datetime.strptime(str(timedelta(seconds=seg)), "%H:%M:%S").time()
-    #print(td)
-    #print(type(td))
-
-    teste= time(5,25,00)
-
-    
-    deltaMais = datetime.combine(date(1,1,1), teste) + timedelta(seconds=seg)
-    #deltaMenos= td +teste
-    print(teste)
-    print(deltaMais)
-    teste= deltaMais.time()
-    print(teste)
-    #print(deltaMenos)
-    
-    rota =[0, 1,2,3]
-    for idx, bus in enumerate(rota[:-1]):
-        print(idx,bus)
-
-
-    print(rota[-1])
-    '''
+   
     # Lendo arquivos e cria os conjuntos para teste com instanias de Park
     for i in range(1,9):
         
@@ -138,19 +112,11 @@ if __name__ == '__main__':
     '''
     
     #print(frotas[7][0])
-    # frotas[instancias][restrição de tempo]
+    # frotas[instancias][restrição de tempo(0=2700/1=5400)]
     # Chama o teste
-    '''
-    aux=[1,2,3,4,5,6,7,8,9]
-    x=[7,8,9]
-    for i in aux[1:-(len(x))]:
-        print(i)
+   
 
-    for i in  range(2, len(aux)-(len(x))):
-        print(i ,  aux[i], aux[i-1])
 
-    
-    '''
     problema.sbrpTestesParkSL([garagens[7]],frotas[7][0], escolas[7],paradas[7])
     '''
     for onibus in problema.conjOnibusUteis:

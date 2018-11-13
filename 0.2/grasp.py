@@ -5,6 +5,8 @@ import math
 import random
 from datetime import date, datetime, time, timedelta
 from operator import itemgetter
+from os import remove
+from threading import local
 
 from models import Escola, Estudante, Garagem, Onibus, Parada
 
@@ -55,11 +57,13 @@ class Grasp:
         except :
             return None
     
-    def listaRestritaDeCandidatosInicial(self, fatorRandomizacao, localSaidaOnibus): 
+    def listaRestritaDeCandidatosInicial(self, fatorRandomizacao, localSaidaOnibus, grupo): 
+        #BUG dividir as paradas em grupos por escola e tentar escolher por grupo da escola q deve ser atendida primeiro a escola q pode ser atendida por ultimo
+
         # Lista Restrita De Candidatos Inicial
         # fatorRandomizacao = pode assumir valor entre 0 e 1 seve pra determinar o tamanho da lista LRC, onde se a =0 o metodo resá totalmente guloso e a= 1 totalmente aleatório
         matrizCustos={} # a estrutura de dados da matriz de custos é um diciionário onde a parada é a chave
-        for parada in self.conjParadas:
+        for parada in grupo:
             custo= self.distancia(localSaidaOnibus, parada) + self.distancia(parada, parada.escola)
             matrizCustos[ parada ] = custo
         matrizCustos= dict( sorted(matrizCustos.items(), key=itemgetter(1))) # Matriz de custos ordenada pelo menor custo
@@ -129,6 +133,7 @@ class Grasp:
         return soma.time()
 
     def subSegundos(self, tempo, segundos): # subtrai segundos de um horário
+        print ("T: ",tempo,"seg: ", segundos)
         sub = datetime.combine(date(1,1,1), tempo) - timedelta(seconds=segundos)
         return sub.time()
 
@@ -140,13 +145,13 @@ class Grasp:
         else:
             dif = tempo2-tempo1
         return dif.seconds #diferença do tempo em segundos
-
+    '''
     def tempoRotaComCarga(self,rota,escolas): #conta o tempo da rota em que há alunos no onibus
         aux = copy.copy(rota)
         aux.extend(escolas)
         # retorna o tempo da rota desconsiderando a viagem vazia da garagem à primeira parada
         return self.tempoDaRota(aux) - self.tempoTrecho(self.distancia(aux[0],aux[1]))
-
+    '''
     def tempoRotaComCarga_(self,rota): #conta o tempo da rota em que há alunos no onibus
         aux = copy.copy(rota)
         # retorna o tempo da rota desconsiderando a viagem vazia da garagem à primeira parada
@@ -164,6 +169,18 @@ class Grasp:
                 onibus.inicioEspediente = self.subSegundos(onibus.inicioEspediente, self.diferencaTempo(onibus.fimEspediente, onibus.escolas[-1].horarioInicioAulasMax))
                 onibus.fimEspediente = self.subSegundos(onibus.fimEspediente, self.diferencaTempo(onibus.fimEspediente, onibus.escolas[-1].horarioInicioAulasMax))
 
+    def ajustaJanela_(self,onibus): # ajusta os horários do onibus pra respeitar a janela de tempo da escola
+        # Ajusta a janela de tempo do espediente do onibus de acordo com a janela de tempo da escola
+        if onibus.fimEspediente < onibus.escolas[-1].horarioInicioAulasMin:
+            
+            onibus.inicioEspediente = self.somaSegundos(onibus.inicioEspediente, self.diferencaTempo(onibus.fimEspediente, onibus.escolas[-1].horarioInicioAulasMin))
+            onibus.fimEspediente = self.somaSegundos(onibus.fimEspediente, self.diferencaTempo(onibus.fimEspediente, onibus.escolas[-1].horarioInicioAulasMin))
+        elif onibus.fimEspediente > onibus.escolas[-1].horarioInicioAulasMax:
+            
+            onibus.inicioEspediente = self.subSegundos(onibus.inicioEspediente, self.diferencaTempo(onibus.fimEspediente, onibus.escolas[-1].horarioInicioAulasMax))
+            onibus.fimEspediente = self.subSegundos(onibus.fimEspediente, self.diferencaTempo(onibus.fimEspediente, onibus.escolas[-1].horarioInicioAulasMax))
+
+
     def printMiniRotas(self):
         for onibus in self.conjOnibusUteis:
             print("______________________________________________________________________________")
@@ -172,6 +189,56 @@ class Grasp:
             self.printConj(self.miniRotas[onibus], "SUB ROTA:{} ".format(1))
 
     def otimizaRotas(self): 
+        ######### Método 6 de união de mini rotas ######### ESPECIAL
+        aux= self.conjOnibusUteis
+        for onibus in self.miniRotas:
+            if not onibus.anterior:
+                self.rotas.append([onibus])
+                aux.remove(onibus)
+        
+        while aux:
+            print("C")
+            for rota in self.rotas:
+                for onibus in self.miniRotas:
+                    if onibus.anterior == rota[-1]:
+                        rota.append(onibus)
+                        aux.remove(onibus)
+
+                
+
+        '''
+        ######### Método 5 de união de mini rotas #########
+        # unir as rotas de acordo com uma sequencia possivel de escolas
+        # eu verifico a janela de tempo das escolas e tento mesclas mini rotas de acordo com essa sequencia
+        sequencias=[] 
+        for escola in self.conjEscolas:
+            conjunto=[]
+            for onibus in self.miniRotas:
+                if onibus.escolas[-1] == escola:
+                    conjunto.append(onibus)
+            sequencias.append(conjunto)
+        print ("conj escolas tem {} itens e de sequencia {}".format(len(self.conjEscolas),len(sequencias)))
+        for i in sequencias:
+            print(len(i))
+            for onibus in i:
+                inserido= False
+                if self.rotas == []:
+                    self.rotas.append([onibus])
+                    inserido= True
+                else:
+                    for rota in self.rotas:
+                        aux= self.miniRotas[onibus]
+                        aux[0]= self.miniRotas[rota[-1]][-1]
+                        tempochegadaNovo= self.somaSegundos(rota[-1].fimEspediente, self.tempoDaRota(aux))
+                        if tempochegadaNovo <= onibus.escolas[-1].horarioInicioAulasMax  and tempochegadaNovo >= onibus.escolas[-1].horarioInicioAulasMin :
+                            rota.append(onibus)
+                            self.miniRotas[onibus]=aux
+                            inserido= True
+                            break
+                if inserido == False:
+                    self.rotas.append([onibus])
+
+        '''
         '''
         ######### Método 2 de união de mini rotas #########
         for onibus in self.miniRotas:
@@ -283,6 +350,7 @@ class Grasp:
                         aux.remove(bus) 
                         break
         '''
+        '''
         ######### Método 4 de união de mini rotas ######### 
         ############# Melhor resultado até agora ########
         aux = copy.copy(self.conjOnibusUteis)
@@ -368,7 +436,7 @@ class Grasp:
             marcador= None
 
             self.rotas.append(rota)
-
+        '''
         '''
         ######### Método 1 de união de mini rotas #########
         aux = copy.copy(self.conjOnibusUteis)
@@ -444,17 +512,19 @@ class Grasp:
                 print("porra")
         
         '''
+        
         #self.printMiniRotas()
         i=1
-        for rota in self.rotas[:5]:
+        for rota in self.rotas[:-5]:
             print ("************", i, "********")
             for onibus in rota:
                 print(onibus)
+                print(onibus.escolas)
                 self.printConj(self.miniRotas[onibus],"parte de "+ str(i))
                 print("     ")
             print("inicio= {}     fim= {}".format(rota[0].inicioEspediente, rota[-1].fimEspediente))
             i +=1
-    
+
     def unirMiniRotas(self,onibus1,onibus2):
         auxBus1= copy.copy(onibus1)
         auxBus2= copy.copy(onibus2)
@@ -467,70 +537,129 @@ class Grasp:
     def respeitaCondicoes(self, rota, onibus, parada): # Verifica todas as condições nescessárias para acrescentar uma parada na sub rota
         rotaAux= copy.copy(rota)
         rotaAux.append(parada)
+        #escolas = onibus.escolas
+        #escolas.append(parada.escola)
+        #escolas= list(set(escolas))
+        rotaAux.append(parada.escola)
+        # self.printConj(rotaAux,"aaa")
         tempoRotaAux= self.tempoDaRota(rotaAux) # tempo da rota incluindo essa parada
-        conTempoViagem = self.tempoRotaComCarga(rotaAux,[parada.escola]) # tempo de viagem com alunos no onibus
+        # BUG testar se respeita a janela de todas as escolas
         # Condições
         condLotacao= (onibus.lotacao + parada.qtAlunos)<= onibus.capacidade # Se lotação do onibus após passar na parada é menor ou igual a capacidade do onibus
-        condHorarioEscola = self.somaSegundos(onibus.inicioEspediente,tempoRotaAux) <= parada.escola.horarioInicioAulasMax # Se o tempo de chegada à escola será respeitado
-        conTempoViagem = self.tempoRotaComCarga(rotaAux,[parada.escola]) <= onibus.tempoMaxRota # Se o tempo de viagem com alunos no onibus respeita o limite dado
+        condHorarioEscola = self.somaSegundos(onibus.inicioEspediente,tempoRotaAux) <= parada.escola.horarioInicioAulasMax # Se o tempo de chegada à ultima escola será respeitado
+        conTempoViagem = self.tempoRotaComCarga_(rotaAux) <= onibus.tempoMaxRota # Se o tempo de viagem com alunos no onibus respeita o limite dado
+        # print(self.tempoRotaComCarga_(rotaAux),self.somaSegundos(onibus.inicioEspediente,tempoRotaAux))
+        # print(condLotacao,condHorarioEscola,conTempoViagem)
         return condLotacao and condHorarioEscola and conTempoViagem
-    '''
+    
     def paradasPossiveis(self, horario):
         paradas=[]
         for parada in self.conjParadas:
             if horario< parada.escola.horarioInicioAulasMax:
                 paradas.apend(parada)
         return paradas
-    '''
+    
     def sbrpTestesParkSL(self,conjGaragens, conjOnibus, conjEscolas, conjParadas):# execulta os testes de tempo
         # Execulta com as instancias de Park
         # Faz análisas de tempo de execulsão
 
         # Insere os conjuntos de teste recebidos dos bancos de dados
         self.conjGaragens = conjGaragens # setar uma unica garagem num ponto médio entre as paradas
-        self.conjOnibus = conjOnibus # setar 100 onibus com capacidade para 66 alunos
+        self.conjOnibus = conjOnibus # setar 2000 onibus com capacidade para 66 alunos
         self.conjEscolas = sorted(conjEscolas, key= Escola.get_horarioInicioAulasMin) # setar as RSRB de Park ( http://logistics.postech.ac.kr/Mixed_SBRP_Benchmark.html )
         self.conjParadas = conjParadas #setar as RSRB de Park ( http://logistics.postech.ac.kr/Mixed_SBRP_Benchmark.html )
         
         
+
         contEstourou=0
         
         i=1 # Um contador pra marcar as interações 
-        #onibusAnterior = None
+        onibusAnterior = None
         while self.conjParadas:
             # Enquanto o conjunto de paradas não estiver vazio
-            resultado = open('resultado.txt', 'w')
-            #print ("************", i, "********")
+            #resultado = open('resultado.txt', 'w')
+            print ("************", i, "********")
+            
+            conjPE=[] #conjonto de paradas por escola
+            for escola in self.conjEscolas:
+                aux=[]
+                for parada in self.conjParadas:
+                    if parada.escola == escola:
+                        aux.append(parada)
+                if aux != []:
+                    conjPE.append(aux)
             
             subRota = [] # inicializo uma subrota vazia
+            paradasPossiveis= None
             parada = None
 
             # Cada sub rota inicializa com um novo onibus 
             onibus = random.choice(self.conjOnibus) # pega um onibus aleatório no conj de onibus
             self.conjOnibus.remove(onibus) # removo-o do conj de onibus 
             self.conjOnibusUteis.append(onibus) # acloco-o no conj de onibus utilizados
+            # Ao final da contrução de sub rotas eu tento mesclar as rotas pra diminuir o numero de onibus nescessários chmando self.otimizaRotas  
+
+            if onibusAnterior : # and há a posibilidade dele atender alguma escola if onibus anterior.fimEspediente < tempo max da escola com maior maxtime da janela
+                # atribuo algumas informação de onibus anterior para o atual
+                onibus.inicioEspediente = onibusAnterior.fimEspediente
+                onibus.garagem= onibusAnterior.escolas[-1]
+                onibus.localAtual= onibus.garagem
+                onibus.anterior= onibusAnterior
+
+
+            # inicializo uma sub rota com o onibus partindo do destino do anterior
             subRota.append(onibus.localAtual) # inicializo a rota partindo da garagem
-            # Ao final da contrução de sub rotas eu tento mesclar as rotas pra diminuir o numero de onibus nescessários chmando self.otimizaRotas
+            for conj in conjPE:
+                lrc = self.listaRestritaDeCandidatosInicial(0.1, onibus.localAtual,conj)
+                while len(subRota) == 1 : # Enquanto só tiver a garagem
+                    #print(lrc) 
+                    if lrc != []:
+                        parada = random.choice(lrc)
+                    else:
+                        break
+                    if self.respeitaCondicoes(subRota,onibus,parada):
+                        print('PORRA')
+                        subRota.append(parada)
+                        onibus.escolas.append(parada.escola) # atualiza as escolas para a qual o onibus ta fazendo rota
+                        onibus.escolas = list(set(onibus.escolas)) # retira repetições
+                        onibus.lotacao += parada.qtAlunos # atualiza a lotação do onibus
+                        onibus.localAtual = parada # atualiza local do onibus
+                        self.conjParadas.remove(parada)
+                    lrc.remove(parada)
+                if len(subRota) >1:
+                    break
 
-            # BUG próxima modificação a tentar é tentar inicializar a rota a partir do onibus anterior se possivel
-            # Se o onibus ainda puder atender alguma parada ou seja se paradasPossiveis != [] ai o onibus atual receber
-            # como horario de inicio o horario final do onibus anterior e 
+            # inicializo a subrota a partir da garagem se não der
+            if len(subRota) == 1:
+                onibus.inicioEspediente = time(0,0,0)
+                onibus.garagem= self.conjGaragens[-1]
+                onibus.localAtual= onibus.garagem
+                onibus.anterior=None
+                subRota[0]=onibus.localAtual
+                for conj in conjPE:
+                    lrc = self.listaRestritaDeCandidatosInicial(0.1, onibus.localAtual,conj)
+                    while len(subRota) == 1 : # Enquanto só tiver a garagem
+                        #print("A") 
+                        if lrc != []:
+                            parada = random.choice(lrc)
+                        else:
+                            break
+                        if self.respeitaCondicoes(subRota,onibus,parada):
+                            print('MERDA')
+                            subRota.append(parada)
+                            onibus.escolas.append(parada.escola) # atualiza as escolas para a qual o onibus ta fazendo rota
+                            onibus.escolas = list(set(onibus.escolas)) # retira repetições
+                            onibus.lotacao += parada.qtAlunos # atualiza a lotação do onibus
+                            onibus.localAtual = parada # atualiza local do onibus
+                            self.conjParadas.remove(parada)
+                        lrc.remove(parada)
+                    if len(subRota) >1:
+                        break
+                   
 
-            # inicializo uma sub rota
-            while len(subRota) == 1: # Enquanto só tiver a garagem
-                lrc = self.listaRestritaDeCandidatosInicial(0.1, onibus.localAtual)
-                parada = random.choice(lrc)
-                if self.respeitaCondicoes(subRota,onibus,parada):
-                    subRota.append(parada)
-                    onibus.escolas.append(parada.escola) # atualiza as escolas para a qual o onibus ta fazendo rota
-                    onibus.escolas = list(set(onibus.escolas)) # retira repetições
-                    onibus.lotacao += parada.qtAlunos # atualiza a lotação do onibus
-                    onibus.localAtual = parada # atualiza local do onibus
-                    self.conjParadas.remove(parada)
+            while(onibus.capacidade > onibus.lotacao and self.tempoRotaComCarga_(subRota + onibus.escolas) < onibus.tempoMaxRota):# Verifica condições de capacidade do onibus e tempo de rota
 
-            while(onibus.capacidade > onibus.lotacao and self.tempoRotaComCarga(subRota,onibus.escolas) < onibus.tempoMaxRota):# Verifica condições de capacidade do onibus e tempo de rota
-
-                lrc= self.listaRestritaDeCandidatosInicial(0.1, onibus.localAtual)
+                lrc= self.listaRestritaDeCandidatosPorEscola(0.1, onibus.localAtual)
                 #print("1 LRC:{}".format(lrc))
                 if lrc != None:
                     parada = random.choice(lrc)
@@ -569,6 +698,7 @@ class Grasp:
             ''' 
 
             #BUG tenhoque orgnizar as escolas a partir da ultima parada
+            onibus.escolas = list(set(onibus.escolas))
             subRota.extend(onibus.escolas) # adiciona as escolas como ultimas paradas da subRota
             onibus.localAtual = onibus.escolas[-1] # atualiza local de onibus
 
@@ -576,31 +706,31 @@ class Grasp:
 
             onibus.fimEspediente = self.somaSegundos(onibus.inicioEspediente, self.tempoDaRota(subRota)) # Soma ao expediente do onibuso tempo dessa sub rota
             #print("fim espediente bus {}".format(onibus.fimEspediente))
-            # Atualiza a permissão de atender mais rotas do onibus
+            
             
        
-            # Incluia sub rota no conj de rotas e no dicionário de soluções
-            #self.rotas.append(subRota)
+            # Incluia sub rota no dicionário de mini rotas
             self.miniRotas[onibus]=subRota
      
             # Prints
             #self.printConj(subRota, "SUB ROTA:{} ".format(i))
              
-            if self.tempoRotaComCarga(subRota,onibus.escolas) > 2700:
+            if self.tempoRotaComCarga_(subRota) > 2700:
                 contEstourou +=1
 
             #print(self.tempoDaRota(subRota))
             #print(self.tempoRotaComCarga(subRota,onibus.escolas))
             #print("Onibus utilizados= {}".format(len(self.conjOnibusUteis)))
-            
+            self.ajustaJanela_(onibus)
+            onibusAnterior= onibus
             i+=1
             
 
         # Ajusta a janela de tempo dos onibus
-        self.ajustaJanela()
+        # self.ajustaJanela()
 
         # otimizar rotas
-        self.otimizaRotas()
+        self.otimizaRotas() # só preciso dessa parte se as self.rotas não forem implementadas nesta função
 
         print(len(self.miniRotas))
         print(len(self.rotas))

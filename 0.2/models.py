@@ -10,8 +10,8 @@ class Escola:
         self.id= id
         self.latitude= float(x)
         self.longitude= float(y)
-        self.horarioInicioAulasMin = hmin   # BUG mudar grasp pra aceitar time
-        self.horarioInicioAulasMax = hmax   # BUG mudar grasp pra aceitar time
+        self.horarioInicioAulasMin = time(0,0,0) # hmin   # BUG mudar grasp pra aceitar time
+        self.horarioInicioAulasMax = time(8,0,0) # hmax   # BUG mudar grasp pra aceitar time
         #self.matrizDistancia = {}
 
     def get_horarioInicioAulasMin(self):
@@ -56,6 +56,7 @@ class Onibus:
         self.escolas = []
         self.localAtual = garagem
         self.tempoMaxRota = tempoMaxRota # 2700 (45 min) e 5400 (90 min) para os testes tempo maximo de um aluno na rota
+        self.anterior=None
 
     def __str__(self):
         # try:
