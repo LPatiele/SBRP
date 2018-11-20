@@ -3,6 +3,7 @@ from datetime import date, datetime, time, timedelta
 from os import remove
 
 from grasp import Grasp
+from mixedLoad import GraspML
 from models import Escola, Garagem, Onibus, Parada
 
 import copy
@@ -35,17 +36,46 @@ def transformaParaTime(tempostr):
     return tempo
 
 if __name__ == '__main__':
-    problema = Grasp()
+    problema = GraspML()
     paradas = []
     escolas = []
     garagens = [] 
-    frotas = []  
+    frotas = [] 
+    solucoes2700=[] 
     # Ler os arquivos
 
    
+   
     # Lendo arquivos e cria os conjuntos para teste com instanias de Park
     for i in range(1,9):
-        
+
+        '''
+        # Ler as soluções
+        arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/solution_2700.txt', 'r')
+        texto = arqEscolas.readlines()[1:]
+        solucao=[]
+        a1Ant=None
+        a3Ant=None
+        contBus=1
+        contMiniRota=0
+        for linha in texto :
+            a1,a2,a3,a4,a5,a6,a7,a8,a9 = linha.split()
+            a1=int(a1)
+            a3=int(a3)
+            if a1Ant:
+                if a1!=a1Ant:
+                    contBus+=1
+            a1Ant=a1
+            if a3>900000:
+                contMiniRota+=1
+            if a3Ant:
+                if a3 == a3Ant:
+                    contMiniRota+=1
+            a3Ant=a3
+        solucao.append([contBus,contMiniRota])
+        print(contBus,"     ", contMiniRota)
+        '''
+
         #print("RSB0{}".format(i))
         # Prepara os oito conjuntos de paradas
         arqEscolas = open('SBRP_Benchmark/RSRB/RSRB0'+str(i)+'/Schools.txt', 'r')
@@ -92,8 +122,7 @@ if __name__ == '__main__':
 
         frotas.append(conjOnibus)
     
-   
-       
+     
     '''
     # mostrar os conjuntos
     for i in range(1):
@@ -115,9 +144,9 @@ if __name__ == '__main__':
     # frotas[instancias][restrição de tempo(0=2700/1=5400)]
     # Chama o teste
    
+    
 
-
-    problema.sbrpTestesParkSL([garagens[7]],frotas[7][0], escolas[7],paradas[7])
+    problema.sbrpTestesParkSL([garagens[1]],frotas[1][0], escolas[1],paradas[1])
     '''
     for onibus in problema.conjOnibusUteis:
         print(onibus.escolas)
